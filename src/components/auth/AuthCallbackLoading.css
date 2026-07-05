@@ -1,0 +1,186 @@
+/*
+ * AuthCallbackLoading.css
+ *
+ * Visual treatment for the loading state shown on
+ * `/auth/callback` (FusionAuth OAuth round-trip). The backend
+ * processes the callback and creates a session cookie; this
+ * stylesheet adds a polished, fully CSS-animated message that
+ * matches the rest of the Quien.uy auth surface.
+ *
+ * Notes:
+ *   - All animation is done with CSS @keyframes (no JavaScript
+ *     timers), so it runs on the very first paint.
+ *   - The dot animation works by animating the `width` and
+ *     `text-indent` of a pseudo-element so it cycles between
+ *     ".", "..", "..." smoothly.
+ *   - The card is also the active element for screen readers via
+ *     `role="status"` + `aria-live="polite"` (set on the parent).
+ */
+
+.auth-callback-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 28px 16px 16px;
+  min-height: 240px;
+  text-align: center;
+  animation: auth-callback-fade-in 0.25s ease-out both;
+}
+
+@keyframes auth-callback-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Animated ring + brand mark ─────────────────────────────── */
+.auth-callback-loading__ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-callback-loading__ring-spin {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 168, 120, 0) 0deg,
+    rgba(0, 168, 120, 0.15) 60deg,
+    #00A878 200deg,
+    #006B5A 260deg,
+    rgba(0, 107, 90, 0) 360deg
+  );
+  -webkit-mask:
+    radial-gradient(circle, transparent 52%, #000 53%);
+          mask: radial-gradient(circle, transparent 52%, #000 53%);
+  animation: auth-callback-spin 1.1s linear infinite;
+  filter: drop-shadow(0 6px 14px rgba(0, 168, 120, 0.25));
+}
+
+@keyframes auth-callback-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-callback-loading__ring-mark {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #00A878 0%, #006B5A 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 20px;
+  box-shadow:
+    0 10px 24px -8px rgba(0, 168, 120, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* ── Title + animated dots ──────────────────────────────────── */
+.auth-callback-loading__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1F2933;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+}
+
+/*
+ * The three animated dots. We use an inline-block with a fixed
+ * width that grows via `width` keyframes and overlay a stepped
+ * set of dot characters via `text-indent` from a `::before`
+ * pseudo-element. This gives a smooth, timer-free cycle
+ * (".", "..", "...") that runs on the compositor thread.
+ */
+.auth-callback-loading__dots {
+  position: relative;
+  display: inline-block;
+  width: 1.4ch;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: baseline;
+  text-align: left;
+  overflow: hidden;
+  color: #00A878;
+}
+
+.auth-callback-loading__dots::after {
+  content: "...";
+  position: absolute;
+  inset: 0;
+  white-space: nowrap;
+  animation: auth-callback-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes auth-callback-dots {
+  /* 0, 25, 50, 75 → "..."; the `steps()` timing keeps the visible
+   * state from the previous keyframe until the next one, so the
+   * user sees a crisp, staggered "one dot / two dots / three dots"
+   * pulse rather than a fade. */
+  0%   { transform: translateX(-2ch); }
+  25%  { transform: translateX(-1ch); }
+  50%  { transform: translateX(0); }
+  75%  { transform: translateX(0); }
+  100% { transform: translateX(0); }
+}
+
+/* ── Hint text ──────────────────────────────────────────────── */
+.auth-callback-loading__hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1F2933;
+  opacity: 0.6;
+  max-width: 320px;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .auth-callback-loading,
+  .auth-callback-loading__ring-spin,
+  .auth-callback-loading__dots::after {
+    animation: none;
+  }
+
+  .auth-callback-loading__dots {
+    width: 3ch;
+  }
+}
+
+/* ── Small viewports ────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .auth-callback-loading {
+    padding: 20px 8px 8px;
+    min-height: 200px;
+  }
+
+  .auth-callback-loading__title {
+    font-size: 18px;
+  }
+
+  .auth-callback-loading__hint {
+    font-size: 13px;
+  }
+}

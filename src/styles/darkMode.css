@@ -1,0 +1,8 @@
+/* darkMode.css
+ *
+ * Dark mode is now handled entirely by DaisyUI themes (quienLight / quienDark)
+ * configured in global.css. The theme is applied via data-theme on <html>
+ * and managed by the Zustand themeStore + ThemeProvider.
+ *
+ * This file is intentionally empty — no custom dark-mode CSS is needed.
+ */

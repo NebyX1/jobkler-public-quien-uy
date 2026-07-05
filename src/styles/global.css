@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: quienLight, quienDark;
+}
+
+/* ── DaisyUI custom themes ───────────────────────────────────── */
+@plugin "daisyui/theme" {
+  name: "quienLight";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+  --color-base-100: #FFF8EF;
+  --color-base-200: #F5EDE2;
+  --color-base-300: #E8DCCB;
+  --color-base-content: #1F2933;
+  --color-primary: #00A878;
+  --color-primary-content: #FFFFFF;
+  --color-secondary: #006B5A;
+  --color-secondary-content: #FFFFFF;
+  --color-accent: #FF6B5A;
+  --color-accent-content: #FFFFFF;
+  --color-neutral: #1F2933;
+  --color-neutral-content: #FFFFFF;
+  --color-info: #2454FF;
+  --color-info-content: #FFFFFF;
+  --color-success: #00A878;
+  --color-success-content: #FFFFFF;
+  --color-warning: #FFC857;
+  --color-warning-content: #1F2933;
+  --color-error: #FF6B5A;
+  --color-error-content: #FFFFFF;
+  --radius-selector: 0.75rem;
+  --radius-field: 1rem;
+  --radius-box: 1.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "quienDark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: #101816;
+  --color-base-200: #17211E;
+  --color-base-300: #24332E;
+  --color-base-content: #E9F2EE;
+  --color-primary: #22D3A6;
+  --color-primary-content: #06251E;
+  --color-secondary: #7BE0C3;
+  --color-secondary-content: #06251E;
+  --color-accent: #FF8A75;
+  --color-accent-content: #23110D;
+  --color-neutral: #E9F2EE;
+  --color-neutral-content: #101816;
+  --color-info: #8FB4FF;
+  --color-info-content: #0A1228;
+  --color-success: #22D3A6;
+  --color-success-content: #06251E;
+  --color-warning: #FFD166;
+  --color-warning-content: #1A1408;
+  --color-error: #FF8A75;
+  --color-error-content: #1A0F0C;
+  --radius-selector: 0.75rem;
+  --radius-field: 1rem;
+  --radius-box: 1.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* ── Custom theme tokens (Tailwind v4 @theme) ────────────────── */
+@theme {
+  --font-sans: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
+  --radius-4xl: 2rem;
+  --shadow-soft: 0 4px 24px -8px rgba(31, 41, 51, 0.10);
+  --shadow-card: 0 2px 12px -4px rgba(31, 41, 51, 0.08);
+}
+
+/* ── Base ────────────────────────────────────────────────────── */
+/* Tailwind v4 Preflight handles box-sizing, margins, and padding.
+ * Do NOT add a global `* { margin: 0; padding: 0 }` here — it would
+ * override Tailwind utilities like py-24 because unlayered rules
+ * have higher priority than @layer utilities rules. */
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-base-100);
+  color: var(--color-base-content);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Visible focus states for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Hide scrollbar for horizontal chip scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Subtle decorative grid pattern used behind the hero section.
+ * Theme-aware via currentColor so it stays faint in both themes. */
+.bg-grid-soft {
+  background-image:
+    linear-gradient(to right, currentColor 1px, transparent 1px),
+    linear-gradient(to bottom, currentColor 1px, transparent 1px);
+  background-size: 44px 44px;
+}

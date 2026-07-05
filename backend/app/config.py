@@ -1,0 +1,188 @@
+import os
+from datetime import timedelta
+from pathlib import Path
+from dotenv import load_dotenv
+
+_BASE_DIR = Path(__file__).resolve().parent.parent
+_DOTENV_PATH = _BASE_DIR / '.env'
+
+# Load backend/.env when present without overriding injected env vars.
+load_dotenv(_DOTENV_PATH, override=False)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Boilerplate IDL – Base Flask + React
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _as_bool(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _normalize_origin(value: str | None) -> str:
+    if not value:
+        return ''
+    return value.strip().strip('"').strip("'").rstrip('/')
+
+
+def _parse_cors_origins(
+    raw_value: str | None,
+    fallback: tuple[str, ...],
+) -> tuple[str, ...]:
+    candidates = raw_value.split(',') if raw_value else fallback
+    normalized: list[str] = []
+    seen: set[str] = set()
+
+    for item in candidates:
+        origin = _normalize_origin(item)
+        if not origin:
+            continue
+        key = origin.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(origin)
+
+    return tuple(normalized) or fallback
+
+
+class Config:
+    ENV_NAME = (os.environ.get('FLASK_ENV') or 'production').strip().lower()
+    SECRET_KEY = (
+        os.environ.get('SECRET_KEY')
+        or 'change-me-in-production-please'
+    )
+    SQLALCHEMY_DATABASE_URI = (
+        os.environ.get('DATABASE_URL')
+        or os.environ.get('DATABASE_URI')
+        or 'sqlite:///gvl.db'
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # JWT
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or SECRET_KEY
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=8)
+    JWT_TOKEN_LOCATION = ['headers']
+    JWT_HEADER_NAME = 'Authorization'
+    JWT_HEADER_TYPE = 'Bearer'
+
+    # Mail
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True') == 'True'
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False') == 'True'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = (
+        os.environ.get('MAIL_DEFAULT_SENDER')
+        or 'noreply@gvl.local'
+    )
+
+    # App identity
+    APP_NAME = os.environ.get('APP_NAME', 'IDL Boilerplate')
+    FRONTEND_URL = _normalize_origin(
+        os.environ.get('FRONTEND_URL')
+    )
+
+    # WTF / CSRF (admin HTML panel)
+    WTF_CSRF_SECRET_KEY = os.environ.get('WTF_CSRF_SECRET_KEY') or SECRET_KEY
+
+    # Session security (admin HTML panel uses server-side sessions)
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = not _as_bool(
+        os.environ.get('FLASK_DEBUG'),
+        default=False,
+    )
+    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour admin session
+
+    # Redis (optional – for rate limiting)
+    REDIS_URL = os.environ.get('REDIS_URL') or 'memory://'
+    RATELIMIT_STORAGE_URI = (
+        os.environ.get('RATELIMIT_STORAGE_URI')
+        or REDIS_URL
+    )
+
+    # CORS – origins loaded exclusively from env vars; no hardcoded fallback.
+    # CORS validates the request *origin*, not the backend path.
+    # Flask-CORS is initialized globally so every endpoint is covered.
+    CORS_ORIGINS_RAW = os.environ.get('CORS_ORIGINS')
+    _frontend_fallback = (FRONTEND_URL,) if FRONTEND_URL else ()
+    CORS_ALLOWED_ORIGINS = list(
+        _parse_cors_origins(CORS_ORIGINS_RAW, _frontend_fallback)
+    )
+    CORS_ALLOW_HEADERS = (
+        'Authorization',
+        'Content-Type',
+        'X-Requested-With',
+    )
+    CORS_METHODS = (
+        'GET',
+        'POST',
+        'PUT',
+        'PATCH',
+        'DELETE',
+        'OPTIONS',
+    )
+    CORS_SUPPORTS_CREDENTIALS = True
+
+    # ── FusionAuth (OIDC / OAuth2) ─────────────────────────────────
+    FUSIONAUTH_BASE_URL = _normalize_origin(
+        os.environ.get('FUSIONAUTH_BASE_URL')
+    ) or 'http://localhost:9011'
+    FUSIONAUTH_ISSUER = _normalize_origin(
+        os.environ.get('FUSIONAUTH_ISSUER')
+    ) or FUSIONAUTH_BASE_URL
+    FUSIONAUTH_CLIENT_ID = (
+        os.environ.get('FUSIONAUTH_CLIENT_ID') or ''
+    ).strip()
+    FUSIONAUTH_CLIENT_SECRET = (
+        os.environ.get('FUSIONAUTH_CLIENT_SECRET') or ''
+    ).strip()
+    FUSIONAUTH_REDIRECT_URI = _normalize_origin(
+        os.environ.get('FUSIONAUTH_REDIRECT_URI')
+    ) or 'http://localhost:5000/api/auth/callback'
+    FRONTEND_URL = _normalize_origin(
+        os.environ.get('FRONTEND_URL')
+    ) or 'http://localhost:5173'
+
+    # Google Identity Provider id configured inside the FusionAuth
+    # Application (used to force the Google-only login flow via
+    # `idp_hint` on `/api/auth/login/google`).
+    FUSIONAUTH_GOOGLE_IDP_ID = (
+        os.environ.get('FUSIONAUTH_GOOGLE_IDP_ID') or ''
+    ).strip()
+
+    # Whether to include `max_age=0` on the forced-Google authorize
+    # URL, to discourage FusionAuth from silently reusing an existing
+    # local FusionAuth session. Some FusionAuth versions/configs may
+    # reject or ignore this parameter; disable via env var if needed
+    # without touching the code.
+    FUSIONAUTH_FORCE_MAX_AGE0 = _as_bool(
+        os.environ.get('FUSIONAUTH_FORCE_MAX_AGE0'),
+        default=True,
+    )
+
+    # Session cookie settings for the FusionAuth app session.
+    AUTH_SESSION_SECRET = (
+        os.environ.get('AUTH_SESSION_SECRET')
+        or SECRET_KEY
+    )
+    AUTH_COOKIE_NAME = (
+        os.environ.get('AUTH_COOKIE_NAME') or 'quien_session'
+    )
+    AUTH_COOKIE_SECURE = _as_bool(
+        os.environ.get('AUTH_COOKIE_SECURE'),
+        default=False,
+    )
+    AUTH_COOKIE_SAMESITE = (
+        os.environ.get('AUTH_COOKIE_SAMESITE') or 'Lax'
+    )
+    AUTH_ALLOWED_REDIRECT_URLS = tuple(
+        _parse_cors_origins(
+            os.environ.get('AUTH_ALLOWED_REDIRECT_URLS'),
+            (FRONTEND_URL,),
+        )
+    )
+

@@ -1,0 +1,417 @@
+/*
+ * AuthPage.css
+ *
+ * Visual layout for the /auth screen. The FusionAuth login button is
+ * mounted inside the right-hand card; everything else is plain
+ * application markup.
+ *
+ * Goals:
+ *   - Full-viewport, centered, split-screen layout on desktop.
+ *   - Single column on mobile.
+ *   - Soft, modern SaaS look (no dark blocks, no harsh bands).
+ *   - Decorative blurred blobs that stay subtle and don't compete
+ *     with the auth card.
+ *   - The login button itself is styled inline, so this file is only
+ *     responsible for the surrounding shell.
+ */
+
+.auth-shell {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background-color: #FFF8EF;
+  background-image:
+    radial-gradient(at 18% 22%, rgba(0, 168, 120, 0.12) 0px, transparent 55%),
+    radial-gradient(at 82% 12%, rgba(255, 200, 87, 0.10) 0px, transparent 55%),
+    radial-gradient(at 78% 88%, rgba(255, 107, 90, 0.08) 0px, transparent 55%),
+    linear-gradient(180deg, #FFF8EF 0%, #FFF8EF 100%);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* ── Decorative blurred blobs ─────────────────────────────────── */
+.auth-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.auth-blob--one {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  left: -120px;
+  background: radial-gradient(circle, #00A878 0%, rgba(0, 168, 120, 0) 70%);
+}
+.auth-blob--two {
+  width: 360px;
+  height: 360px;
+  bottom: -140px;
+  right: -100px;
+  background: radial-gradient(circle, #FFC857 0%, rgba(255, 200, 87, 0) 70%);
+}
+.auth-blob--three {
+  width: 280px;
+  height: 280px;
+  top: 30%;
+  right: 18%;
+  background: radial-gradient(circle, #FF6B5A 0%, rgba(255, 107, 90, 0) 70%);
+  opacity: 0.35;
+}
+
+/* ── Main container (split screen) ───────────────────────────── */
+.auth-container {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 48px;
+  width: 100%;
+  max-width: 1120px;
+  align-items: center;
+}
+
+/* ── Left brand panel ────────────────────────────────────────── */
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px 8px;
+  max-width: 540px;
+}
+
+.auth-brand__logo {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 12px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 168, 120, 0.18);
+  font-weight: 700;
+  font-size: 14px;
+  color: #1F2933;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgba(31, 41, 51, 0.04);
+}
+
+.auth-brand__logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #00A878 0%, #006B5A 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 16px;
+  box-shadow:
+    0 8px 20px -8px rgba(0, 168, 120, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.auth-brand__title {
+  font-size: 46px;
+  line-height: 1.06;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #1F2933;
+  margin: 0;
+}
+
+.auth-brand__title-accent {
+  background: linear-gradient(135deg, #00A878 0%, #006B5A 60%, #2454FF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.auth-brand__subtitle {
+  font-size: 19px;
+  line-height: 1.55;
+  font-weight: 500;
+  color: #1F2933;
+  margin: 0;
+  max-width: 520px;
+}
+
+.auth-brand__supporting {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #1F2933;
+  opacity: 0.7;
+  margin: 0;
+  max-width: 520px;
+}
+
+/* Feature chips */
+.auth-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 168, 120, 0.18);
+  color: #1F2933;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 1px 2px rgba(31, 41, 51, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -4px rgba(0, 168, 120, 0.25);
+}
+
+.auth-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00A878 0%, #006B5A 100%);
+  box-shadow: 0 0 0 3px rgba(0, 168, 120, 0.15);
+}
+
+/* Tiny footer / hint */
+.auth-brand__footnote {
+  margin-top: 16px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(31, 41, 51, 0.08);
+  font-size: 13px;
+  font-weight: 500;
+  color: #1F2933;
+  opacity: 0.6;
+  letter-spacing: 0.005em;
+}
+
+/* ── Right auth card ─────────────────────────────────────────── */
+.auth-card {
+  position: relative;
+  background-color: #ffffff;
+  border-radius: 24px;
+  padding: 36px 36px 32px;
+  box-shadow:
+    0 30px 60px -20px rgba(31, 41, 51, 0.18),
+    0 12px 24px -12px rgba(0, 168, 120, 0.12),
+    0 0 0 1px rgba(31, 41, 51, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 460px;
+}
+
+.auth-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-card__title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1F2933;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.auth-card__hint {
+  font-size: 14.5px;
+  color: #1F2933;
+  opacity: 0.6;
+  margin: 0;
+  line-height: 1.55;
+  max-width: 380px;
+}
+
+/* The login button mounts here. We let it fill the
+ * remaining vertical space and rely on the global `style` override
+ * to center the button within the card. */
+.auth-card__widget {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  margin-top: 4px;
+}
+
+/* While the backend is processing the FusionAuth OAuth callback
+ * (e.g. `/auth/callback/google`) we render our own
+ * <AuthCallbackLoading /> card on top and visually hide the
+ * SDK's own default spinner. The SDK stays mounted in the
+ * background (in a screen-reader-only container) so the
+ * callback handler still runs to completion; we never modify
+ * `apiDomain`, `apiBasePath`, or the provider configuration. */
+.auth-card__widget--callback {
+  position: relative;
+  min-height: 240px;
+}
+
+.auth-card__widget-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  /* Make sure the hidden SDK container does not leak the default
+   * spinner into the visible card, but still receives its own
+   * positioning context for the (now invisible) children. */
+  top: 0;
+  left: 0;
+}
+
+/* ── Login button ─────────────────────────────────────────────── */
+.auth-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 24px;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  background: #fff;
+  color: #3c4043;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.auth-login-btn:hover {
+  background: #f8f9fa;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.12);
+  border-color: #c6c8ca;
+}
+
+.auth-login-btn:active {
+  background: #f1f3f4;
+}
+
+.auth-login-btn__google-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.auth-card__footer {
+  margin-top: 16px;
+  font-size: 12px;
+  color: #1F2933;
+  opacity: 0.5;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── Error message ────────────────────────────────────────────── */
+.auth-error {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fef7f0;
+  border: 1px solid #f5c6cb;
+  color: #842029;
+  font-size: 14px;
+}
+
+.auth-error__code {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #842029;
+  opacity: 0.8;
+  font-family: ui-monospace, monospace;
+}
+
+/* ── Mobile responsive ───────────────────────────────────────── */
+@media (max-width: 900px) {
+  .auth-container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    max-width: 520px;
+  }
+
+  .auth-brand {
+    align-items: center;
+    text-align: center;
+    gap: 18px;
+    padding: 0;
+  }
+
+  .auth-brand__title {
+    font-size: 32px;
+  }
+
+  .auth-brand__subtitle,
+  .auth-brand__supporting {
+    font-size: 15px;
+  }
+
+  .auth-features {
+    justify-content: center;
+  }
+
+  .auth-card {
+    padding: 28px 22px 24px;
+    border-radius: 20px;
+    min-height: auto;
+  }
+
+  .auth-card__title {
+    font-size: 22px;
+  }
+
+  /* Hide the heaviest decorative blob on small screens to keep the
+   * viewport uncluttered. */
+  .auth-blob--three {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-shell {
+    padding: 20px 14px;
+  }
+
+  .auth-brand__title {
+    font-size: 28px;
+  }
+
+  .auth-card {
+    padding: 24px 18px 20px;
+    border-radius: 18px;
+  }
+
+  .auth-chip {
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+}
