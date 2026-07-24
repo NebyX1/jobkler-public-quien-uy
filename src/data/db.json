@@ -870,7 +870,9 @@
       "yearsExperience": 6,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-001",
+      "status": "active"
     },
     {
       "id": "profile-002",
@@ -912,7 +914,9 @@
       "yearsExperience": 11,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-002",
+      "status": "active"
     },
     {
       "id": "profile-003",
@@ -948,12 +952,14 @@
       ],
       "availability": "Disponible",
       "verified": true,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 51,
       "yearsExperience": 16,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-003",
+      "status": "active"
     },
     {
       "id": "profile-004",
@@ -994,7 +1000,9 @@
       "yearsExperience": 21,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-004",
+      "status": "active"
     },
     {
       "id": "profile-005",
@@ -1035,7 +1043,9 @@
       "yearsExperience": 1,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-005",
+      "status": "active"
     },
     {
       "id": "profile-006",
@@ -1076,7 +1086,9 @@
       "yearsExperience": 6,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-006",
+      "status": "active"
     },
     {
       "id": "profile-007",
@@ -1117,7 +1129,9 @@
       "yearsExperience": 11,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-007",
+      "status": "active"
     },
     {
       "id": "profile-008",
@@ -1158,7 +1172,9 @@
       "yearsExperience": 16,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-008",
+      "status": "active"
     },
     {
       "id": "profile-009",
@@ -1200,7 +1216,9 @@
       "yearsExperience": 21,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-009",
+      "status": "active"
     },
     {
       "id": "profile-010",
@@ -1241,7 +1259,9 @@
       "yearsExperience": 1,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-010",
+      "status": "active"
     },
     {
       "id": "profile-011",
@@ -1284,7 +1304,9 @@
       "yearsExperience": 6,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-011",
+      "status": "active"
     },
     {
       "id": "profile-012",
@@ -1327,7 +1349,9 @@
       "yearsExperience": 11,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-012",
+      "status": "active"
     },
     {
       "id": "profile-013",
@@ -1363,12 +1387,14 @@
       ],
       "availability": "Disponible",
       "verified": true,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 29,
       "yearsExperience": 16,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-013",
+      "status": "active"
     },
     {
       "id": "profile-014",
@@ -1409,7 +1435,9 @@
       "yearsExperience": 21,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-014",
+      "status": "active"
     },
     {
       "id": "profile-015",
@@ -1450,7 +1478,9 @@
       "yearsExperience": 1,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-015",
+      "status": "active"
     },
     {
       "id": "profile-016",
@@ -1491,7 +1521,9 @@
       "yearsExperience": 6,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-016",
+      "status": "active"
     },
     {
       "id": "profile-017",
@@ -1532,7 +1564,9 @@
       "yearsExperience": 11,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-017",
+      "status": "active"
     },
     {
       "id": "profile-018",
@@ -1574,7 +1608,9 @@
       "yearsExperience": 16,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-018",
+      "status": "active"
     },
     {
       "id": "profile-019",
@@ -1615,7 +1651,9 @@
       "yearsExperience": 21,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-019",
+      "status": "active"
     },
     {
       "id": "profile-020",
@@ -1658,7 +1696,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-020",
+      "status": "active"
     },
     {
       "id": "profile-021",
@@ -1699,7 +1739,9 @@
       "yearsExperience": 6,
       "featured": true,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-021",
+      "status": "active"
     },
     {
       "id": "profile-022",
@@ -1741,7 +1783,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-022",
+      "status": "active"
     },
     {
       "id": "profile-023",
@@ -1777,12 +1821,14 @@
       ],
       "availability": "Coordinar horario",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 7,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-023",
+      "status": "active"
     },
     {
       "id": "profile-024",
@@ -1823,7 +1869,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-024",
+      "status": "active"
     },
     {
       "id": "profile-025",
@@ -1866,7 +1914,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-025",
+      "status": "active"
     },
     {
       "id": "profile-026",
@@ -1909,7 +1959,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-026",
+      "status": "active"
     },
     {
       "id": "profile-027",
@@ -1950,7 +2002,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-027",
+      "status": "active"
     },
     {
       "id": "profile-028",
@@ -1991,7 +2045,9 @@
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-028",
+      "status": "active"
     },
     {
       "id": "profile-029",
@@ -2034,7 +2090,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-029",
+      "status": "active"
     },
     {
       "id": "profile-030",
@@ -2075,7 +2133,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-030",
+      "status": "active"
     },
     {
       "id": "profile-031",
@@ -2117,7 +2177,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-031",
+      "status": "active"
     },
     {
       "id": "profile-032",
@@ -2159,7 +2221,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-032",
+      "status": "active"
     },
     {
       "id": "profile-033",
@@ -2197,12 +2261,14 @@
       ],
       "availability": "Agenda limitada",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 81,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-033",
+      "status": "active"
     },
     {
       "id": "profile-034",
@@ -2245,7 +2311,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-034",
+      "status": "active"
     },
     {
       "id": "profile-035",
@@ -2288,7 +2356,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-035",
+      "status": "active"
     },
     {
       "id": "profile-036",
@@ -2329,7 +2399,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-036",
+      "status": "active"
     },
     {
       "id": "profile-037",
@@ -2370,7 +2442,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-037",
+      "status": "active"
     },
     {
       "id": "profile-038",
@@ -2411,7 +2485,9 @@
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-038",
+      "status": "active"
     },
     {
       "id": "profile-039",
@@ -2452,7 +2528,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-039",
+      "status": "active"
     },
     {
       "id": "profile-040",
@@ -2493,7 +2571,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-040",
+      "status": "active"
     },
     {
       "id": "profile-041",
@@ -2536,7 +2616,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-041",
+      "status": "active"
     },
     {
       "id": "profile-042",
@@ -2577,7 +2659,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-042",
+      "status": "active"
     },
     {
       "id": "profile-043",
@@ -2613,12 +2697,14 @@
       ],
       "availability": "Coordinar horario",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 59,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-043",
+      "status": "active"
     },
     {
       "id": "profile-044",
@@ -2659,7 +2745,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-044",
+      "status": "active"
     },
     {
       "id": "profile-045",
@@ -2700,7 +2788,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-045",
+      "status": "active"
     },
     {
       "id": "profile-046",
@@ -2742,7 +2832,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-046",
+      "status": "active"
     },
     {
       "id": "profile-047",
@@ -2783,7 +2875,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-047",
+      "status": "active"
     },
     {
       "id": "profile-048",
@@ -2824,7 +2918,9 @@
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-048",
+      "status": "active"
     },
     {
       "id": "profile-049",
@@ -2865,7 +2961,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-049",
+      "status": "active"
     },
     {
       "id": "profile-050",
@@ -2908,7 +3006,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-050",
+      "status": "active"
     },
     {
       "id": "profile-051",
@@ -2949,7 +3049,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-051",
+      "status": "active"
     },
     {
       "id": "profile-052",
@@ -2990,7 +3092,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-052",
+      "status": "active"
     },
     {
       "id": "profile-053",
@@ -3026,12 +3130,14 @@
       ],
       "availability": "Agenda limitada",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 37,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-053",
+      "status": "active"
     },
     {
       "id": "profile-054",
@@ -3074,7 +3180,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-054",
+      "status": "active"
     },
     {
       "id": "profile-055",
@@ -3117,7 +3225,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-055",
+      "status": "active"
     },
     {
       "id": "profile-056",
@@ -3158,7 +3268,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-056",
+      "status": "active"
     },
     {
       "id": "profile-057",
@@ -3200,7 +3312,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-057",
+      "status": "active"
     },
     {
       "id": "profile-058",
@@ -3243,7 +3357,9 @@
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-058",
+      "status": "active"
     },
     {
       "id": "profile-059",
@@ -3284,7 +3400,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-059",
+      "status": "active"
     },
     {
       "id": "profile-060",
@@ -3327,7 +3445,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-060",
+      "status": "active"
     },
     {
       "id": "profile-061",
@@ -3368,7 +3488,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-061",
+      "status": "active"
     },
     {
       "id": "profile-062",
@@ -3409,7 +3531,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-062",
+      "status": "active"
     },
     {
       "id": "profile-063",
@@ -3445,12 +3569,14 @@
       ],
       "availability": "Coordinar horario",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 15,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-063",
+      "status": "active"
     },
     {
       "id": "profile-064",
@@ -3492,7 +3618,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-064",
+      "status": "active"
     },
     {
       "id": "profile-065",
@@ -3533,7 +3661,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-065",
+      "status": "active"
     },
     {
       "id": "profile-066",
@@ -3574,7 +3704,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-066",
+      "status": "active"
     },
     {
       "id": "profile-067",
@@ -3615,7 +3747,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-067",
+      "status": "active"
     },
     {
       "id": "profile-068",
@@ -3656,7 +3790,9 @@
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-068",
+      "status": "active"
     },
     {
       "id": "profile-069",
@@ -3697,7 +3833,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-069",
+      "status": "active"
     },
     {
       "id": "profile-070",
@@ -3740,7 +3878,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-070",
+      "status": "active"
     },
     {
       "id": "profile-071",
@@ -3783,7 +3923,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-071",
+      "status": "active"
     },
     {
       "id": "profile-072",
@@ -3826,7 +3968,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-072",
+      "status": "active"
     },
     {
       "id": "profile-073",
@@ -3862,12 +4006,14 @@
       ],
       "availability": "Agenda limitada",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 89,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-073",
+      "status": "active"
     },
     {
       "id": "profile-074",
@@ -3908,7 +4054,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-074",
+      "status": "active"
     },
     {
       "id": "profile-075",
@@ -3949,7 +4097,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-075",
+      "status": "active"
     },
     {
       "id": "profile-076",
@@ -3990,7 +4140,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-076",
+      "status": "active"
     },
     {
       "id": "profile-077",
@@ -4031,7 +4183,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-077",
+      "status": "active"
     },
     {
       "id": "profile-078",
@@ -4074,7 +4228,9 @@
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-078",
+      "status": "active"
     },
     {
       "id": "profile-079",
@@ -4115,7 +4271,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-079",
+      "status": "active"
     },
     {
       "id": "profile-080",
@@ -4156,7 +4314,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-080",
+      "status": "active"
     },
     {
       "id": "profile-081",
@@ -4198,7 +4358,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-081",
+      "status": "active"
     },
     {
       "id": "profile-082",
@@ -4239,7 +4401,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-082",
+      "status": "active"
     },
     {
       "id": "profile-083",
@@ -4275,12 +4439,14 @@
       ],
       "availability": "Coordinar horario",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 67,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-083",
+      "status": "active"
     },
     {
       "id": "profile-084",
@@ -4321,7 +4487,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-084",
+      "status": "active"
     },
     {
       "id": "profile-085",
@@ -4362,7 +4530,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-085",
+      "status": "active"
     },
     {
       "id": "profile-086",
@@ -4403,7 +4573,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-086",
+      "status": "active"
     },
     {
       "id": "profile-087",
@@ -4444,7 +4616,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-087",
+      "status": "active"
     },
     {
       "id": "profile-088",
@@ -4485,7 +4659,9 @@
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-088",
+      "status": "active"
     },
     {
       "id": "profile-089",
@@ -4526,7 +4702,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-089",
+      "status": "active"
     },
     {
       "id": "profile-090",
@@ -4567,7 +4745,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-090",
+      "status": "active"
     },
     {
       "id": "profile-091",
@@ -4608,7 +4788,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-091",
+      "status": "active"
     },
     {
       "id": "profile-092",
@@ -4649,7 +4831,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-092",
+      "status": "active"
     },
     {
       "id": "profile-093",
@@ -4687,12 +4871,14 @@
       ],
       "availability": "Agenda limitada",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 45,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-093",
+      "status": "active"
     },
     {
       "id": "profile-094",
@@ -4733,7 +4919,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-094",
+      "status": "active"
     },
     {
       "id": "profile-095",
@@ -4776,7 +4964,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-095",
+      "status": "active"
     },
     {
       "id": "profile-096",
@@ -4819,7 +5009,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-096",
+      "status": "active"
     },
     {
       "id": "profile-097",
@@ -4860,7 +5052,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-097",
+      "status": "active"
     },
     {
       "id": "profile-098",
@@ -4901,7 +5095,9 @@
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-098",
+      "status": "active"
     },
     {
       "id": "profile-099",
@@ -4942,7 +5138,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-099",
+      "status": "active"
     },
     {
       "id": "profile-100",
@@ -4983,7 +5181,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-100",
+      "status": "active"
     },
     {
       "id": "profile-101",
@@ -5024,7 +5224,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-101",
+      "status": "active"
     },
     {
       "id": "profile-102",
@@ -5065,7 +5267,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-102",
+      "status": "active"
     },
     {
       "id": "profile-103",
@@ -5103,12 +5307,14 @@
       ],
       "availability": "Coordinar horario",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 23,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-103",
+      "status": "active"
     },
     {
       "id": "profile-104",
@@ -5149,7 +5355,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-104",
+      "status": "active"
     },
     {
       "id": "profile-105",
@@ -5192,7 +5400,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-105",
+      "status": "active"
     },
     {
       "id": "profile-106",
@@ -5233,7 +5443,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-106",
+      "status": "active"
     },
     {
       "id": "profile-107",
@@ -5276,7 +5488,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-107",
+      "status": "active"
     },
     {
       "id": "profile-108",
@@ -5317,7 +5531,9 @@
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-108",
+      "status": "active"
     },
     {
       "id": "profile-109",
@@ -5358,7 +5574,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-109",
+      "status": "active"
     },
     {
       "id": "profile-110",
@@ -5399,7 +5617,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-110",
+      "status": "active"
     },
     {
       "id": "profile-111",
@@ -5440,7 +5660,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-111",
+      "status": "active"
     },
     {
       "id": "profile-112",
@@ -5483,7 +5705,9 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-112",
+      "status": "active"
     },
     {
       "id": "profile-113",
@@ -5520,12 +5744,14 @@
       ],
       "availability": "Agenda limitada",
       "verified": false,
-      "rating": 5.0,
+      "rating": 5,
       "reviewsCount": 1,
       "yearsExperience": 16,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-113",
+      "status": "active"
     },
     {
       "id": "profile-114",
@@ -5566,7 +5792,9 @@
       "yearsExperience": 21,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-114",
+      "status": "active"
     },
     {
       "id": "profile-115",
@@ -5607,7 +5835,9 @@
       "yearsExperience": 1,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-115",
+      "status": "active"
     },
     {
       "id": "profile-116",
@@ -5648,7 +5878,9 @@
       "yearsExperience": 6,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
-      "updatedAt": "2026-07-03T00:00:00.000Z"
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-116",
+      "status": "active"
     },
     {
       "id": "profile-117",
@@ -5690,7 +5922,328 @@
       "yearsExperience": 11,
       "featured": false,
       "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "ownerUserId": "user-117",
+      "status": "active"
+    }
+  ],
+  "users": [
+    {
+      "id": "user-001",
+      "email": "ana.ferreira@example.com",
+      "displayName": "Ana Ferreira",
+      "picture": "https://randomuser.me/api/portraits/women/8.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
       "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-002",
+      "email": "diego.suarez2@example.com",
+      "displayName": "Diego Suárez",
+      "picture": "https://randomuser.me/api/portraits/men/15.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-003",
+      "email": "lucia.cabrera3@example.com",
+      "displayName": "Lucía Cabrera",
+      "picture": "https://randomuser.me/api/portraits/women/22.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-004",
+      "email": "roberto.lima4@example.com",
+      "displayName": "Roberto Lima",
+      "picture": "https://randomuser.me/api/portraits/men/29.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-005",
+      "email": "marta.nunez5@example.com",
+      "displayName": "Marta Núñez",
+      "picture": "https://randomuser.me/api/portraits/women/36.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-006",
+      "email": "claudio.pereira6@example.com",
+      "displayName": "Claudio Pereira",
+      "picture": "https://randomuser.me/api/portraits/men/43.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-007",
+      "email": "valentina.rios7@example.com",
+      "displayName": "Valentina Ríos",
+      "picture": "https://randomuser.me/api/portraits/women/50.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-008",
+      "email": "gabriel.soto8@example.com",
+      "displayName": "Gabriel Soto",
+      "picture": "https://randomuser.me/api/portraits/men/57.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-009",
+      "email": "camila.techera9@example.com",
+      "displayName": "Camila Techera",
+      "picture": "https://randomuser.me/api/portraits/women/64.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-010",
+      "email": "hugo.barrios10@example.com",
+      "displayName": "Hugo Barrios",
+      "picture": "https://randomuser.me/api/portraits/men/71.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-011",
+      "email": "paula.rodriguez11@example.com",
+      "displayName": "Paula Rodríguez",
+      "picture": "https://randomuser.me/api/portraits/women/78.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-012",
+      "email": "sofia.acosta12@example.com",
+      "displayName": "Sofía Acosta",
+      "picture": "https://randomuser.me/api/portraits/women/85.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-013",
+      "email": "mariana.gonzalez13@example.com",
+      "displayName": "Mariana González",
+      "picture": "https://randomuser.me/api/portraits/women/92.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-014",
+      "email": "florencia.silva14@example.com",
+      "displayName": "Florencia Silva",
+      "picture": "https://randomuser.me/api/portraits/women/99.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-015",
+      "email": "noelia.pereira15@example.com",
+      "displayName": "Noelia Pereira",
+      "picture": "https://randomuser.me/api/portraits/women/7.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-016",
+      "email": "carolina.mendez16@example.com",
+      "displayName": "Carolina Méndez",
+      "picture": "https://randomuser.me/api/portraits/women/14.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-017",
+      "email": "natalia.costa17@example.com",
+      "displayName": "Natalia Costa",
+      "picture": "https://randomuser.me/api/portraits/women/21.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-018",
+      "email": "veronica.diaz18@example.com",
+      "displayName": "Verónica Díaz",
+      "picture": "https://randomuser.me/api/portraits/women/28.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-019",
+      "email": "gabriela.machado19@example.com",
+      "displayName": "Gabriela Machado",
+      "picture": "https://randomuser.me/api/portraits/women/35.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    },
+    {
+      "id": "user-020",
+      "email": "rocio.fernandez20@example.com",
+      "displayName": "Rocío Fernández",
+      "picture": "https://randomuser.me/api/portraits/women/42.jpg",
+      "provider": "google",
+      "roles": [
+        "user"
+      ],
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "review-001",
+      "profileId": "profile-001",
+      "profileSlug": "ana-ferreira-psicologa-minas",
+      "authorUserId": "user-010",
+      "authorName": "Martín Rodríguez",
+      "authorPicture": "https://randomuser.me/api/portraits/men/31.jpg",
+      "rating": 5,
+      "comment": "Excelente atención y muy buena comunicación. La recomiendo totalmente.",
+      "status": "published",
+      "createdAt": "2026-07-03T00:00:00.000Z",
+      "updatedAt": "2026-07-03T00:00:00.000Z",
+      "editable": false,
+      "acceptedNoEditPolicy": true
+    },
+    {
+      "id": "review-002",
+      "profileId": "profile-001",
+      "profileSlug": "ana-ferreira-psicologa-minas",
+      "authorUserId": "user-005",
+      "authorName": "Lucía Gómez",
+      "authorPicture": "https://randomuser.me/api/portraits/women/22.jpg",
+      "rating": 4,
+      "comment": "Muy profesional, me ayudó mucho con mi ansiedad. El consultorio es cómodo y accesible.",
+      "status": "published",
+      "createdAt": "2026-07-02T00:00:00.000Z",
+      "updatedAt": "2026-07-02T00:00:00.000Z",
+      "editable": false,
+      "acceptedNoEditPolicy": true
+    },
+    {
+      "id": "review-003",
+      "profileId": "profile-002",
+      "profileSlug": "carlos-mendez-electricista-montevideo",
+      "authorUserId": "user-001",
+      "authorName": "Ana Ferreira",
+      "authorPicture": "https://randomuser.me/api/portraits/women/44.jpg",
+      "rating": 5,
+      "comment": "Trabajo impecable, llegó a tiempo y resolvió el problema rápido. Muy recomendable.",
+      "status": "published",
+      "createdAt": "2026-07-01T00:00:00.000Z",
+      "updatedAt": "2026-07-01T00:00:00.000Z",
+      "editable": false,
+      "acceptedNoEditPolicy": true
+    },
+    {
+      "id": "review-004",
+      "profileId": "profile-003",
+      "profileSlug": "maria-garcia-peluquera-ciudad-del-plata",
+      "authorUserId": "user-002",
+      "authorName": "Carlos Méndez",
+      "authorPicture": "https://randomuser.me/api/portraits/men/15.jpg",
+      "rating": 4,
+      "comment": "Muy buena atención y el resultado fue exactamente lo que quería. Volveré sin dudas.",
+      "status": "published",
+      "createdAt": "2026-06-28T00:00:00.000Z",
+      "updatedAt": "2026-06-28T00:00:00.000Z",
+      "editable": false,
+      "acceptedNoEditPolicy": true
+    },
+    {
+      "id": "review-005",
+      "profileId": "profile-005",
+      "profileSlug": "roberto-silva-albañil-paysandu",
+      "authorUserId": "user-003",
+      "authorName": "María García",
+      "authorPicture": "https://randomuser.me/api/portraits/women/12.jpg",
+      "rating": 5,
+      "comment": "Excelente trabajo en la remodelación de mi baño. Muy prolijo y cumplidor con los plazos.",
+      "status": "published",
+      "createdAt": "2026-06-25T00:00:00.000Z",
+      "updatedAt": "2026-06-25T00:00:00.000Z",
+      "editable": false,
+      "acceptedNoEditPolicy": true
     }
   ]
 }

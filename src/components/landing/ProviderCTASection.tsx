@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { PROVIDER_BENEFITS } from '../../pages/landing/landingData';
 
@@ -27,12 +28,12 @@ export function ProviderCTASection() {
                 contactarte.
               </p>
               <div>
-                <a
-                  href="/auth"
+                <Link
+                  to="/login?next=/mi-perfil"
                   className="btn h-14 rounded-2xl border-0 bg-base-100 px-8 text-base font-bold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-base-200"
                 >
                   Sumar mi perfil
-                </a>
+                </Link>
               </div>
             </div>
 

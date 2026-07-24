@@ -1,10 +1,10 @@
 import { Outlet } from 'react-router-dom';
-import { Navbar } from './Navbar';
-import { Footer } from './Footer';
+import { Navbar } from '../components/landing/Navbar';
+import { Footer } from '../components/landing/Footer';
 
 /**
  * Shared layout for protected routes.
- * Uses Tailwind/DaisyUI classes instead of Fluent UI makeStyles.
+ * Uses the unified Navbar that adapts based on auth state.
  */
 export function MainLayout() {
   return (

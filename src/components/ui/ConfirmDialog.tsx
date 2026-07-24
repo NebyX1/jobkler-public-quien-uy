@@ -1,3 +1,5 @@
+import { AlertTriangle } from 'lucide-react';
+
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -23,22 +25,22 @@ export function ConfirmDialog({
 
   return (
     <dialog className="modal modal-open" aria-modal="true">
-      <div className="modal-box rounded-3xl border border-quien-border bg-white shadow-soft">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-quien-charcoal">
-          {danger && <span className="text-quien-coral">⚠</span>}
+      <div className="modal-box rounded-3xl border border-base-300 bg-base-100 shadow-soft">
+        <h3 className="flex items-center gap-2 text-lg font-bold text-base-content">
+          {danger && <AlertTriangle className="h-5 w-5 text-error" />}
           {title}
         </h3>
-        <p className="mt-3 text-sm text-quien-charcoal/70">{message}</p>
+        <p className="mt-3 text-sm text-base-content/70">{message}</p>
         <div className="modal-action mt-6">
           <button
-            className="btn btn-sm rounded-full border-quien-border bg-white text-quien-charcoal hover:border-quien-green"
+            className="btn btn-sm rounded-full border-base-300 bg-base-100 text-base-content hover:bg-base-200"
             onClick={onCancel}
           >
             {cancelLabel}
           </button>
           <button
-            className={`btn btn-sm rounded-full border-0 text-white ${
-              danger ? 'bg-quien-coral hover:bg-quien-coral/90' : 'bg-quien-green hover:bg-quien-green-dark'
+            className={`btn btn-sm rounded-full border-0 text-primary-content ${
+              danger ? 'btn-error' : 'btn-primary'
             }`}
             onClick={onConfirm}
           >

@@ -1,12 +1,22 @@
-import { useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, Mail, Phone, Star, MessageCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { BadgeCheck, Mail, Phone, Star, MessageCircle, LogIn, Pencil } from 'lucide-react';
 import { Navbar } from '../components/landing/Navbar';
 import { Footer } from '../components/landing/Footer';
 import { ProfileAvatar } from '../components/ProfileAvatar';
 import { ProfileCard } from '../components/landing/ProfileCard';
+import { OwnerBanner } from '../components/profiles/OwnerBanner';
+import { ReviewCard } from '../components/profiles/ReviewCard';
+import { ReviewForm } from '../components/profiles/ReviewForm';
 import { getProfileBySlug, getProfiles } from '../services/profileService';
+import {
+  getReviewsByProfileId,
+  createReview,
+  userHasReviewedProfile,
+  recalculateProfileRating,
+} from '../services/reviewService';
+import { useAuth } from '../lib/auth';
 
 function digitsOnly(value: string) {
   return String(value || '').replace(/\D/g, '');
@@ -14,11 +24,31 @@ function digitsOnly(value: string) {
 
 export function ProfileDetailPage() {
   const { slug = '' } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const { data: profile, isLoading, isError } = useQuery({
     queryKey: ['profile-detail', slug],
     queryFn: () => getProfileBySlug(slug),
     enabled: Boolean(slug),
+  });
+
+  const isOwner = isAuthenticated && Boolean(user?.fusionauth_user_id) && Boolean(profile?.ownerUserId) &&
+    user!.fusionauth_user_id === profile!.ownerUserId;
+
+  const reviewsQuery = useQuery({
+    queryKey: ['profile-reviews', profile?.id],
+    queryFn: () => getReviewsByProfileId(profile!.id),
+    enabled: Boolean(profile?.id),
+  });
+
+  const existingReviewQuery = useQuery({
+    queryKey: ['user-review', user?.fusionauth_user_id, profile?.id],
+    queryFn: () => userHasReviewedProfile(user!.fusionauth_user_id, profile!.id),
+    enabled: isAuthenticated && Boolean(user?.fusionauth_user_id) && Boolean(profile?.id) && !isOwner,
   });
 
   const similarQuery = useQuery({
@@ -39,6 +69,48 @@ export function ProfileDetailPage() {
 
   const serviceArea = profile?.serviceArea?.filter(Boolean) || [];
   const tags = profile?.tags?.filter(Boolean) || [];
+  const reviews = reviewsQuery.data || [];
+  const existingReview = existingReviewQuery.data;
+
+  const handleSubmitReview = async (values: { rating: number; comment: string }) => {
+    if (!user || !profile) return;
+    setReviewError(null);
+
+    // Service-level guard: block self-review
+    // Frontend guard for local JSON Server mock. Real backend must enforce this rule in production.
+    if (profile.ownerUserId && user.fusionauth_user_id === profile.ownerUserId) {
+      setReviewError('No podés reseñar tu propio perfil.');
+      return;
+    }
+
+    // Service-level guard: block if already reviewed
+    if (existingReview) {
+      setReviewError('Ya dejaste una reseña para este perfil.');
+      return;
+    }
+
+    try {
+      await createReview({
+        profileId: profile.id,
+        profileSlug: profile.slug,
+        authorUserId: user.fusionauth_user_id,
+        authorName: user.full_name,
+        authorPicture: user.picture || '',
+        rating: values.rating,
+        comment: values.comment,
+        status: 'published',
+        editable: false,
+        acceptedNoEditPolicy: true,
+      });
+
+      await recalculateProfileRating(profile.id);
+      queryClient.invalidateQueries({ queryKey: ['profile-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['user-review'] });
+      queryClient.invalidateQueries({ queryKey: ['profile-detail'] });
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : 'Error al enviar la reseña.');
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-base-100">
@@ -83,6 +155,9 @@ export function ProfileDetailPage() {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Owner banner */}
+                {isOwner && <OwnerBanner profileSlug={profile.slug} />}
+
                 <section className="rounded-[2.25rem] border border-base-300/70 bg-base-200/50 p-6 shadow-sm sm:p-8">
                   <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                     <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
@@ -117,7 +192,7 @@ export function ProfileDetailPage() {
                           </span>
                           <span className="badge rounded-full border-0 bg-base-100 text-base-content/70">
                             <Star className="mr-1 h-3.5 w-3.5 text-warning" />
-                            {profile.rating?.toFixed(1) ?? '4.8'} · {profile.reviewsCount ?? 0} reseñas
+                            {profile.rating?.toFixed(1) ?? '0.0'} · {profile.reviewsCount ?? 0} reseñas
                           </span>
                           {profile.yearsExperience ? (
                             <span className="badge rounded-full border-0 bg-base-100 text-base-content/70">
@@ -209,6 +284,81 @@ export function ProfileDetailPage() {
                   </aside>
                 </div>
 
+                {/* Reviews section */}
+                <section className="rounded-[2rem] border border-base-300/70 bg-base-200/50 p-6 shadow-sm sm:p-7">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-bold text-base-content">Reseñas</h2>
+                      <p className="mt-1 text-sm text-base-content/60">
+                        {reviews.length > 0
+                          ? `${reviews.length} reseña${reviews.length > 1 ? 's' : ''} · Promedio ${profile.rating?.toFixed(1) ?? '0.0'}`
+                          : 'Todavía no hay reseñas.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {reviewError && (
+                    <div className="mt-4 rounded-2xl border border-error/20 bg-error/10 p-4 text-sm text-error">
+                      {reviewError}
+                      <button onClick={() => setReviewError(null)} className="ml-2 underline">Cerrar</button>
+                    </div>
+                  )}
+
+                  <div className="mt-5 space-y-4">
+                    {reviews.map((review) => (
+                      <ReviewCard key={review.id} review={review} />
+                    ))}
+                  </div>
+
+                  {/* Review CTA / Form */}
+                  <div className="mt-6">
+                    {!isAuthenticated ? (
+                      <div className="rounded-2xl border border-base-300/70 bg-base-100 p-6 text-center">
+                        <h3 className="text-lg font-bold text-base-content">¿Querés dejar una reseña?</h3>
+                        <p className="mt-2 text-sm text-base-content/70">
+                          Iniciá sesión para compartir tu experiencia con este profesional.
+                        </p>
+                        <button
+                          onClick={() => navigate(`/login?next=${encodeURIComponent(`/perfil/${slug}`)}`)}
+                          className="btn btn-primary btn-sm mt-4 rounded-full"
+                        >
+                          <LogIn className="h-4 w-4" />
+                          Iniciar sesión
+                        </button>
+                      </div>
+                    ) : isOwner ? (
+                      <div className="rounded-[2rem] border border-base-300/70 bg-base-100 p-6 shadow-sm">
+                        <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
+                          <h3 className="text-lg font-bold text-base-content">Este es tu perfil</h3>
+                          <p className="mt-2 max-w-md text-sm text-base-content/70">
+                            No podés dejar una reseña sobre tu propio servicio. Podés editar la información desde tu área privada.
+                          </p>
+                          <Link
+                            to="/mi-perfil/editar"
+                            className="btn btn-primary btn-sm mt-4 rounded-full"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Editar mi perfil
+                          </Link>
+                        </div>
+                      </div>
+                    ) : existingReview ? (
+                      <div className="space-y-3">
+                        <div className="rounded-2xl border border-base-300/70 bg-base-100 p-4 text-center text-sm text-base-content/60">
+                          Ya dejaste una reseña para este perfil.
+                          <span className="mt-1 block text-xs text-base-content/40">
+                            Las reseñas enviadas no se pueden modificar.
+                          </span>
+                        </div>
+                        <ReviewCard review={existingReview} />
+                      </div>
+                    ) : (
+                      <ReviewForm onSubmit={handleSubmitReview} />
+                    )}
+                  </div>
+                </section>
+
+                {/* Similar profiles */}
                 <section className="rounded-[2rem] border border-base-300/70 bg-base-200/50 p-6 shadow-sm sm:p-7">
                   <div className="flex items-end justify-between gap-3">
                     <div>

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 const FOOTER_LINKS = [
   { label: 'Buscar', href: '#buscar' },
   { label: 'Categorías', href: '#categorias' },
@@ -17,14 +19,14 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-3">
           {/* Brand */}
           <div className="flex flex-col gap-3">
-            <a href="/" className="flex items-center gap-2.5">
+            <Link to="/" className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary font-extrabold text-primary-content">
                 Q
               </span>
               <span className="text-lg font-extrabold tracking-tight text-base-content">
                 Quien<span className="text-primary">.uy</span>
               </span>
-            </a>
+            </Link>
             <p className="max-w-xs text-sm leading-relaxed text-base-content/60">
               Directorio local de profesionales, oficios y servicios en Uruguay.
               Encontrá quién puede hacerlo.

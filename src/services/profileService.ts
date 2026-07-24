@@ -10,6 +10,12 @@
  *   POST   /profiles
  *   PATCH  /profiles/:id
  *   DELETE /profiles/:id
+ *
+ * Ownership:
+ *   - Each profile has an `ownerUserId` field.
+ *   - Only the owner can edit, delete, or deactivate their profile.
+ *   - JSON Server cannot enforce this; the frontend enforces it.
+ *   - The real backend MUST enforce ownership before production.
  */
 import { API_BASE_URL } from '../config/api';
 import { matchesProfileSearch, normalizeText } from '../utils/textSearch';
@@ -73,6 +79,9 @@ export async function getProfiles(filters: ProfileFilters = {}): Promise<Profile
   const normalizedProfession = normalizeText(profession).trim();
 
   let filtered: Profile[] = Array.isArray(profiles) ? profiles.slice() : [];
+
+  // By default, only show active profiles in search results
+  filtered = filtered.filter((p) => p.status !== 'inactive');
 
   if (featured !== undefined && featured !== null) {
     const isFeatured = Boolean(featured);
@@ -215,3 +224,107 @@ export async function getProfilesByPredictedLocation(
 // Helper re-export so callers can compose route + query params without
 // importing slug logic separately.
 export { matchesSlugOrId };
+
+// ── Ownership-aware operations ─────────────────────────────────────
+
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+export async function getProfileByOwnerUserId(ownerUserId: string): Promise<Profile | null> {
+  const profiles = await fetchJson<Profile[]>(
+    `/profiles?ownerUserId=${encodeURIComponent(ownerUserId)}`,
+  );
+  return Array.isArray(profiles) && profiles.length ? profiles[0] : null;
+}
+
+export async function createProfileForUser(
+  userId: string,
+  input: Omit<Profile, 'id' | 'slug' | 'ownerUserId' | 'status' | 'verified' | 'rating' | 'reviewsCount' | 'featured' | 'createdAt' | 'updatedAt' | 'avatarFallback' | 'professionNormalized'>,
+): Promise<Profile> {
+  const now = new Date().toISOString();
+  const slug = slugify(`${input.displayName} ${input.profession} ${input.locality}`);
+  const professionNormalized = slugify(input.profession);
+
+  const profile: Partial<Profile> = {
+    ...input,
+    id: `profile-${Date.now()}`,
+    slug,
+    name: input.displayName,
+    professionNormalized,
+    avatarFallback: `https://api.dicebear.com/10.x/initials/svg?seed=${encodeURIComponent(input.displayName)}`,
+    ownerUserId: userId,
+    status: 'active',
+    verified: false,
+    rating: 0,
+    reviewsCount: 0,
+    featured: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  return fetchJson<Profile>('/profiles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile),
+  });
+}
+
+export async function updateOwnedProfile(
+  id: string,
+  ownerUserId: string,
+  input: Partial<Profile>,
+): Promise<Profile> {
+  const existing = await getProfileById(id);
+  if (!existing) throw new Error('Perfil no encontrado.');
+  if (existing.ownerUserId !== ownerUserId) {
+    throw new Error('No tenés permiso para editar este perfil.');
+  }
+
+  // Strip system fields that owners should not modify
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { ownerUserId: _ou, verified: _v, rating: _r, reviewsCount: _rc, featured: _f, ...safeInput } = input as Record<string, unknown>;
+
+  return fetchJson<Profile>(`/profiles/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...safeInput,
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+}
+
+export async function deleteOwnedProfile(id: string, ownerUserId: string): Promise<unknown> {
+  const existing = await getProfileById(id);
+  if (!existing) throw new Error('Perfil no encontrado.');
+  if (existing.ownerUserId !== ownerUserId) {
+    throw new Error('No tenés permiso para eliminar este perfil.');
+  }
+
+  return fetchJson<unknown>(`/profiles/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function deactivateOwnedProfile(id: string, ownerUserId: string): Promise<Profile> {
+  const existing = await getProfileById(id);
+  if (!existing) throw new Error('Perfil no encontrado.');
+  if (existing.ownerUserId !== ownerUserId) {
+    throw new Error('No tenés permiso para desactivar este perfil.');
+  }
+
+  return fetchJson<Profile>(`/profiles/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      status: 'inactive',
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+}

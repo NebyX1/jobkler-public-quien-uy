@@ -37,6 +37,8 @@ export interface Profile {
   reviewsCount: number;
   yearsExperience: number;
   featured: boolean;
+  ownerUserId: string;
+  status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
 }
@@ -88,4 +90,31 @@ export interface PredictedLocation {
   locality: string;
   departmentId?: string;
   localityId?: string;
+}
+
+export interface Review {
+  id: string;
+  profileId: string;
+  profileSlug: string;
+  authorUserId: string;
+  authorName: string;
+  authorPicture: string;
+  rating: number;
+  comment: string;
+  status: 'published' | 'hidden';
+  editable: boolean;
+  acceptedNoEditPolicy: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuienUser {
+  id: string;
+  email: string;
+  displayName: string;
+  picture: string;
+  provider: string;
+  roles: string[];
+  createdAt: string;
+  updatedAt: string;
 }
