@@ -18,6 +18,7 @@ import { useAuth } from '../lib/auth';
 import {
   getProfileByOwnerUserId,
   deactivateOwnedProfile,
+  reactivateOwnedProfile,
   deleteOwnedProfile,
 } from '../services/profileService';
 import { ProfileAvatar } from '../components/ProfileAvatar';
@@ -58,8 +59,7 @@ export function MyProfilePage() {
     isFetching,
   } = useQuery<Profile | null, Error>({
     queryKey: ['my-profile', userId],
-    queryFn: () =>
-      userId ? getProfileByOwnerUserId(userId) : Promise.resolve(null),
+    queryFn: () => getProfileByOwnerUserId(),
     enabled: Boolean(userId),
   });
 
@@ -69,7 +69,9 @@ export function MyProfilePage() {
       if (!profile || !userId) {
         return Promise.reject(new Error('No hay perfil para desactivar.'));
       }
-      return deactivateOwnedProfile(profile.id, userId);
+      return profile.status === 'inactive'
+        ? reactivateOwnedProfile(profile.id)
+        : deactivateOwnedProfile(profile.id);
     },
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });
@@ -94,7 +96,7 @@ export function MyProfilePage() {
       if (!profile || !userId) {
         return Promise.reject(new Error('No hay perfil para eliminar.'));
       }
-      return deleteOwnedProfile(profile.id, userId);
+      return deleteOwnedProfile(profile.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });

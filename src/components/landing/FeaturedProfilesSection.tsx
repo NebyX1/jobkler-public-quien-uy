@@ -22,7 +22,7 @@ export function FeaturedProfilesSection() {
 
         {isError ? (
           <div className="rounded-[2rem] border border-base-300/70 bg-base-100 p-6 text-center text-base-content/70">
-            No pudimos cargar los perfiles destacados. Verificá que JSON Server esté corriendo.
+            No pudimos cargar los perfiles destacados. Intentá de nuevo en unos instantes.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">

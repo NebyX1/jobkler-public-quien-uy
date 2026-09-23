@@ -1,9 +1,7 @@
 /**
  * Type definitions for the Quien.uy profile model.
  *
- * Mirrors the shape stored in `src/data/db.json` (the JSON Server
- * mock database). The frontend service layer (`profileService`)
- * decodes raw JSON into this type.
+ * Profile records returned by the local Flask API.
  */
 
 export interface Profile {
@@ -37,8 +35,10 @@ export interface Profile {
   reviewsCount: number;
   yearsExperience: number;
   featured: boolean;
-  ownerUserId: string;
+  ownerUserId?: string;
   status: 'active' | 'inactive';
+  isOwner?: boolean;
+  isFictionalDemo?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -96,7 +96,7 @@ export interface Review {
   id: string;
   profileId: string;
   profileSlug: string;
-  authorUserId: string;
+  authorUserId?: string;
   authorName: string;
   authorPicture: string;
   rating: number;

@@ -1,1 +1,1 @@
-# Services package
+"""Domain services for the Jobkler API."""

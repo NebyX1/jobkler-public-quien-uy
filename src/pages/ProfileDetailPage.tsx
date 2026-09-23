@@ -14,7 +14,6 @@ import {
   getReviewsByProfileId,
   createReview,
   userHasReviewedProfile,
-  recalculateProfileRating,
 } from '../services/reviewService';
 import { useAuth } from '../lib/auth';
 
@@ -36,8 +35,7 @@ export function ProfileDetailPage() {
     enabled: Boolean(slug),
   });
 
-  const isOwner = isAuthenticated && Boolean(user?.fusionauth_user_id) && Boolean(profile?.ownerUserId) &&
-    user!.fusionauth_user_id === profile!.ownerUserId;
+  const isOwner = Boolean(profile?.isOwner);
 
   const reviewsQuery = useQuery({
     queryKey: ['profile-reviews', profile?.id],
@@ -53,7 +51,7 @@ export function ProfileDetailPage() {
 
   const similarQuery = useQuery({
     queryKey: ['similar-profiles', profile?.id],
-    queryFn: () => getProfiles({ department: profile?.department, category: profile?.category }),
+    queryFn: () => getProfiles({ department: profile?.department, category: profile?.category, limit: 4 }),
     enabled: Boolean(profile),
   });
 
@@ -76,9 +74,7 @@ export function ProfileDetailPage() {
     if (!user || !profile) return;
     setReviewError(null);
 
-    // Service-level guard: block self-review
-    // Frontend guard for local JSON Server mock. Real backend must enforce this rule in production.
-    if (profile.ownerUserId && user.fusionauth_user_id === profile.ownerUserId) {
+    if (isOwner) {
       setReviewError('No podés reseñar tu propio perfil.');
       return;
     }
@@ -103,12 +99,12 @@ export function ProfileDetailPage() {
         acceptedNoEditPolicy: true,
       });
 
-      await recalculateProfileRating(profile.id);
       queryClient.invalidateQueries({ queryKey: ['profile-reviews'] });
       queryClient.invalidateQueries({ queryKey: ['user-review'] });
       queryClient.invalidateQueries({ queryKey: ['profile-detail'] });
     } catch (err) {
       setReviewError(err instanceof Error ? err.message : 'Error al enviar la reseña.');
+      throw err;
     }
   };
 
@@ -141,7 +137,7 @@ export function ProfileDetailPage() {
               </div>
             ) : isError ? (
               <div className="rounded-[2rem] border border-error/20 bg-error/10 p-8 text-base-content">
-                No pudimos cargar el perfil. Verificá que JSON Server esté corriendo en el puerto 3001.
+                No pudimos cargar el perfil. Revisá que la API local esté iniciada con run.ps1 o run.sh.
               </div>
             ) : !profile ? (
               <div className="rounded-[2rem] border border-base-300/70 bg-base-100 p-8 text-center">
@@ -290,7 +286,11 @@ export function ProfileDetailPage() {
                     <div>
                       <h2 className="text-xl font-bold text-base-content">Reseñas</h2>
                       <p className="mt-1 text-sm text-base-content/60">
-                        {reviews.length > 0
+                        {reviewsQuery.isLoading
+                          ? 'Cargando reseñas…'
+                          : reviewsQuery.isError
+                            ? 'No pudimos cargar las reseñas.'
+                            : reviews.length > 0
                           ? `${reviews.length} reseña${reviews.length > 1 ? 's' : ''} · Promedio ${profile.rating?.toFixed(1) ?? '0.0'}`
                           : 'Todavía no hay reseñas.'}
                       </p>

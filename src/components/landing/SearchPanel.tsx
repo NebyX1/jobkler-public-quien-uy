@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
-import { uruguayLocations, departmentList } from '../../data/uruguayLocations';
-import { saveLastLocation } from '../../services/locationService';
-import { getProfiles } from '../../services/profileService';
+import { Search, Sparkles } from 'lucide-react';
+import { useAuth } from '../../lib/auth';
+import { getDepartments, getLocalitiesByDepartment, saveLastLocation } from '../../services/locationService';
+import { getProfessionSuggestions } from '../../services/profileService';
 import { ProfessionAutocomplete } from './ProfessionAutocomplete';
 
 interface SearchPanelProps {
@@ -48,7 +48,7 @@ function buildSearchParams({
  * Changing department resets the locality.
  *
  * The profession field predicts suggestions from the live profile set
- * served by JSON Server. Suggestions are guaranteed to exist in the
+ * served by the Flask API. Suggestions are guaranteed to exist in the
  * database (no hardcoded list, no AI calls).
  *
  * On submit, navigates to /buscar?q=...&departamento=...&localidad=...
@@ -63,49 +63,48 @@ export function SearchPanel({
   onSearch,
 }: SearchPanelProps) {
   const navigate = useNavigate();
-  const [profession, setProfession] = useState(initialProfession);
-  const [department, setDepartment] = useState(initialDepartment);
-  const [locality, setLocality] = useState(initialLocality);
+  const { isAuthenticated } = useAuth();
+  const [professionOverride, setProfessionOverride] = useState({ source: initialProfession, value: initialProfession });
+  const [departmentOverride, setDepartmentOverride] = useState({ source: initialDepartment, value: initialDepartment });
+  const [localityOverride, setLocalityOverride] = useState({ source: initialLocality, value: initialLocality });
+  const profession = professionOverride.source === initialProfession ? professionOverride.value : initialProfession;
+  const department = departmentOverride.source === initialDepartment ? departmentOverride.value : initialDepartment;
+  const locality = localityOverride.source === initialLocality ? localityOverride.value : initialLocality;
+  const [debouncedProfession, setDebouncedProfession] = useState(initialProfession);
 
-  // Sync external profession changes (e.g. from quick chips)
-  useEffect(() => {
-    setProfession(initialProfession);
-  }, [initialProfession]);
-
-  useEffect(() => {
-    setDepartment(initialDepartment);
-  }, [initialDepartment]);
-
-  useEffect(() => {
-    setLocality(initialLocality);
-  }, [initialLocality]);
-
-  const localities = useMemo(
-    () => (department ? uruguayLocations[department] ?? [] : []),
-    [department],
-  );
-
-  // Load all profiles once. The autocomplete derives its prediction
-  // list from this set, filtered by department / locality on the fly.
-  // The component never fetches on every keystroke.
-  const { data: profiles = [], isLoading: isLoadingProfiles } = useQuery({
-    queryKey: ['profession-suggestion-profiles'],
-    queryFn: () => getProfiles(),
-    staleTime: 5 * 60 * 1000,
+  const { data: departments = [] } = useQuery({ queryKey: ['catalog-departments'], queryFn: getDepartments, staleTime: 5 * 60_000 });
+  const { data: localities = [] } = useQuery({
+    queryKey: ['catalog-localities', department],
+    queryFn: () => getLocalitiesByDepartment(department),
+    enabled: Boolean(department),
+    staleTime: 5 * 60_000,
   });
-
-  const suggestionFilters = useMemo(
-    () => ({ department: department || undefined, locality: locality || undefined }),
-    [department, locality],
-  );
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedProfession(profession), 180);
+    return () => window.clearTimeout(timeout);
+  }, [profession]);
+  const suggestionQuery = useQuery({
+    queryKey: ['profession-suggestions', debouncedProfession],
+    queryFn: () => getProfessionSuggestions(debouncedProfession),
+    enabled: debouncedProfession.trim().length >= 2,
+    staleTime: 30_000,
+  });
 
   const handleDepartmentChange = useCallback(
     (value: string) => {
-      setDepartment(value);
+      setDepartmentOverride({ source: initialDepartment, value });
       // Reset locality when department changes
-      setLocality('');
+      setLocalityOverride({ source: initialLocality, value: '' });
     },
-    [],
+    [initialDepartment, initialLocality],
+  );
+  const handleProfessionChange = useCallback(
+    (value: string) => setProfessionOverride({ source: initialProfession, value }),
+    [initialProfession],
+  );
+  const handleLocalityChange = useCallback(
+    (value: string) => setLocalityOverride({ source: initialLocality, value }),
+    [initialLocality],
   );
 
   const handleSubmit = useCallback(
@@ -124,6 +123,11 @@ export function SearchPanel({
     },
     [profession, department, locality, onSearch, navigate],
   );
+
+  const openAdvancedSearch = useCallback(() => {
+    const destination = '/buscar/avanzada';
+    navigate(isAuthenticated ? destination : `/login?next=${encodeURIComponent(destination)}`);
+  }, [isAuthenticated, navigate]);
 
   const fieldClasses =
     'h-14 w-full rounded-2xl border border-base-300/70 bg-base-200 px-4 text-base text-base-content placeholder:text-base-content/40 transition focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/35';
@@ -144,10 +148,9 @@ export function SearchPanel({
           fieldClasses={fieldClasses}
           labelClasses={labelClasses}
           value={profession}
-          onChange={setProfession}
-          profiles={profiles}
-          isLoadingProfiles={isLoadingProfiles}
-          filters={suggestionFilters}
+          onChange={handleProfessionChange}
+          suggestions={suggestionQuery.data || []}
+          isLoading={suggestionQuery.isFetching}
         />
 
         {/* Departamento */}
@@ -162,7 +165,7 @@ export function SearchPanel({
             className={fieldClasses}
           >
             <option value="">Departamento</option>
-            {departmentList.map((dep) => (
+            {departments.map((dep) => (
               <option key={dep} value={dep}>
                 {dep}
               </option>
@@ -178,7 +181,7 @@ export function SearchPanel({
           <select
             id="search-locality"
             value={locality}
-            onChange={(e) => setLocality(e.target.value)}
+            onChange={(e) => handleLocalityChange(e.target.value)}
             disabled={!department}
             className={`${fieldClasses} disabled:cursor-not-allowed disabled:opacity-60`}
           >
@@ -202,6 +205,11 @@ export function SearchPanel({
           Buscar
         </button>
       </form>
+      <div className="mt-3 flex justify-end px-2 pb-1">
+        <button type="button" onClick={openAdvancedSearch} className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+          <Sparkles className="h-4 w-4" aria-hidden="true" /> Búsqueda Avanzada
+        </button>
+      </div>
     </div>
   );
 }

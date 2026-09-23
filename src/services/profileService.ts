@@ -1,330 +1,136 @@
-/**
- * Profile service — fetches profiles from JSON Server and applies
- * the client-side filters the directory needs (Spanish text,
- * accents, slugs, category/department/locality, etc.).
- *
- * Endpoints:
- *   GET    /profiles
- *   GET    /profiles/:id
- *   GET    /profiles?slug=...
- *   POST   /profiles
- *   PATCH  /profiles/:id
- *   DELETE /profiles/:id
- *
- * Ownership:
- *   - Each profile has an `ownerUserId` field.
- *   - Only the owner can edit, delete, or deactivate their profile.
- *   - JSON Server cannot enforce this; the frontend enforces it.
- *   - The real backend MUST enforce ownership before production.
- */
-import { API_BASE_URL } from '../config/api';
-import { matchesProfileSearch, normalizeText } from '../utils/textSearch';
+import axios from 'axios';
+import { apiClient } from '../api/client';
 import type { PredictedLocation, Profile, ProfileFilters } from '../types/profile';
 
-async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, options);
-
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-
-  if (response.status === 204) {
-    return null as T;
-  }
-
-  return (await response.json()) as T;
+export interface ProfilesPage {
+  items: Profile[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
 }
 
-function paginate<T>(items: T[], page?: number | string, limit?: number): T[] {
-  if (!limit) return items;
-  const currentPage = Math.max(Number(page) || 1, 1);
-  const pageSize = Math.max(Number(limit) || items.length, 1);
-  const start = (currentPage - 1) * pageSize;
-  return items.slice(start, start + pageSize);
+export interface HomeSummary {
+  metrics: { profiles: number; categories: number; departments: number; reviews: number };
+  featured: Profile[];
 }
 
-function matchesSlugOrId(profile: Profile, value: string): boolean {
-  const normalized = normalizeText(value).trim();
-  if (!normalized) return true;
-  return (
-    normalizeText(profile.department) === normalized ||
-    normalizeText(profile.departmentId) === normalized ||
-    normalizeText(profile.locality) === normalized ||
-    normalizeText(profile.localityId) === normalized
-  );
+export async function getHomeSummary(): Promise<HomeSummary> {
+  return (await apiClient.get<HomeSummary>('/home')).data;
+}
+
+export async function getProfilesPage(filters: ProfileFilters = {}): Promise<ProfilesPage> {
+  const response = await apiClient.get<ProfilesPage>('/profiles', { params: filters });
+  return response.data;
 }
 
 export async function getProfiles(filters: ProfileFilters = {}): Promise<Profile[]> {
-  const profiles = await fetchJson<Profile[]>('/profiles');
-  const {
-    q,
-    department,
-    departmentId,
-    locality,
-    localityId,
-    category,
-    categoryId,
-    profession,
-    featured,
-    page,
-    limit,
-  } = filters;
-
-  const normalizedDepartment = normalizeText(department).trim();
-  const normalizedDepartmentId = normalizeText(departmentId).trim();
-  const normalizedLocality = normalizeText(locality).trim();
-  const normalizedLocalityId = normalizeText(localityId).trim();
-  const normalizedCategory = normalizeText(category).trim();
-  const normalizedCategoryId = normalizeText(categoryId).trim();
-  const normalizedProfession = normalizeText(profession).trim();
-
-  let filtered: Profile[] = Array.isArray(profiles) ? profiles.slice() : [];
-
-  // By default, only show active profiles in search results
-  filtered = filtered.filter((p) => p.status !== 'inactive');
-
-  if (featured !== undefined && featured !== null) {
-    const isFeatured = Boolean(featured);
-    filtered = filtered.filter((profile) => Boolean(profile.featured) === isFeatured);
-  }
-
-  if (normalizedDepartment || normalizedDepartmentId) {
-    filtered = filtered.filter((profile) => {
-      if (normalizedDepartment && normalizeText(profile.department) === normalizedDepartment) {
-        return true;
-      }
-      if (normalizedDepartmentId && profile.departmentId === normalizedDepartmentId) {
-        return true;
-      }
-      return false;
-    });
-  }
-
-  if (normalizedLocality || normalizedLocalityId) {
-    filtered = filtered.filter((profile) => {
-      if (normalizedLocality && normalizeText(profile.locality) === normalizedLocality) {
-        return true;
-      }
-      if (normalizedLocalityId && profile.localityId === normalizedLocalityId) {
-        return true;
-      }
-      return false;
-    });
-  }
-
-  if (normalizedCategory || normalizedCategoryId) {
-    filtered = filtered.filter((profile) => {
-      if (normalizedCategory && normalizeText(profile.category) === normalizedCategory) {
-        return true;
-      }
-      if (normalizedCategoryId && profile.categoryId === normalizedCategoryId) {
-        return true;
-      }
-      return false;
-    });
-  }
-
-  if (normalizedProfession) {
-    filtered = filtered.filter((profile) => {
-      const candidate = [profile.profession, profile.professionNormalized]
-        .map(normalizeText)
-        .join(' ');
-      return candidate.includes(normalizedProfession);
-    });
-  }
-
-  if (q) {
-    filtered = filtered.filter((profile) => matchesProfileSearch(profile, q));
-  }
-
-  return paginate(filtered, page, limit);
+  return (await getProfilesPage({ limit: 50, ...filters })).items;
 }
 
 export async function getProfileBySlug(slug: string): Promise<Profile | null> {
-  const profiles = await fetchJson<Profile[]>(
-    `/profiles?slug=${encodeURIComponent(slug)}`,
-  );
-  return Array.isArray(profiles) && profiles.length ? profiles[0] : null;
+  try {
+    const response = await apiClient.get<Profile>(`/profiles/${encodeURIComponent(slug)}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) return null;
+    throw error;
+  }
 }
 
-export async function getProfileById(id: string): Promise<Profile | null> {
-  return fetchJson<Profile>(`/profiles/${encodeURIComponent(id)}`);
+export const getProfileById = getProfileBySlug;
+
+export async function getProfileByOwnerUserId(): Promise<Profile | null> {
+  try {
+    const response = await apiClient.get<Profile>('/profiles/me');
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) return null;
+    throw error;
+  }
 }
 
-// Prepared for a future admin / profile management UI.
-export async function createProfile(profile: Partial<Profile>): Promise<Profile> {
-  return fetchJson<Profile>('/profiles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(profile),
-  });
+function profileInput(input: Partial<Profile> | Record<string, unknown>) {
+  const allowed = [
+    'displayName', 'categoryId', 'category', 'profession', 'shortDescription', 'description',
+    'photoUrl', 'phone', 'whatsapp', 'email', 'website', 'instagram', 'department',
+    'departmentId', 'locality', 'localityId', 'address', 'serviceArea', 'tags',
+    'availability', 'yearsExperience',
+  ] as const;
+  const data = input as Record<string, unknown>;
+  return Object.fromEntries(allowed.filter((key) => key in data).map((key) => [key, data[key]]));
 }
 
-// Prepared for a future admin / profile management UI.
-export async function updateProfile(
-  id: string,
-  profile: Partial<Profile>,
+export async function createProfileForUser(
+  input: Partial<Profile> | Record<string, unknown>,
 ): Promise<Profile> {
-  return fetchJson<Profile>(`/profiles/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(profile),
-  });
+  const response = await apiClient.post<Profile>('/profiles', profileInput(input));
+  return response.data;
 }
 
-// Prepared for a future admin / profile management UI.
-export async function deleteProfile(id: string): Promise<unknown> {
-  return fetchJson<unknown>(`/profiles/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-  });
+export async function updateOwnedProfile(
+  id: string,
+  input: Partial<Profile> | Record<string, unknown>,
+): Promise<Profile> {
+  const response = await apiClient.patch<Profile>(`/profiles/${encodeURIComponent(id)}`, profileInput(input));
+  return response.data;
+}
+
+export async function deleteOwnedProfile(id: string): Promise<void> {
+  await apiClient.delete(`/profiles/${encodeURIComponent(id)}`);
+}
+
+export async function setOwnedProfileStatus(
+  id: string,
+  status: 'active' | 'inactive',
+): Promise<Profile> {
+  const response = await apiClient.post<Profile>(`/profiles/${encodeURIComponent(id)}/status`, { status });
+  return response.data;
+}
+
+export function deactivateOwnedProfile(id: string): Promise<Profile> {
+  return setOwnedProfileStatus(id, 'inactive');
+}
+
+export function reactivateOwnedProfile(id: string): Promise<Profile> {
+  return setOwnedProfileStatus(id, 'active');
 }
 
 export async function getFeaturedProfiles(): Promise<Profile[]> {
-  return getProfiles({ featured: true });
+  return getProfiles({ featured: true, limit: 6 });
 }
 
 export async function getFeaturedProfilesLimit(limit: number): Promise<Profile[]> {
   return getProfiles({ featured: true, limit });
 }
 
-/**
- * Used by the /cerca-de-mi page.
- *
- * Priority:
- *   1. Profiles in the predicted locality.
- *   2. Top up with profiles in the predicted department.
- *   3. Top up with featured profiles if we still don't have 6.
- */
-export async function getProfilesByPredictedLocation(
-  location: PredictedLocation,
-): Promise<Profile[]> {
-  const localityMatches = location.locality
-    ? await getProfiles({ locality: location.locality, localityId: location.localityId })
-    : [];
-
-  if (localityMatches.length >= 6) {
-    return localityMatches;
+export async function getProfilesByPredictedLocation(location: PredictedLocation): Promise<Profile[]> {
+  if (location.locality || location.localityId) {
+    return getProfiles({
+      department: location.department || undefined,
+      departmentId: location.departmentId || undefined,
+      locality: location.locality || undefined,
+      localityId: location.localityId || undefined,
+      limit: 50,
+    });
   }
-
-  const departmentMatches = location.department
-    ? await getProfiles({ department: location.department, departmentId: location.departmentId })
-    : [];
-  const featuredMatches = await getFeaturedProfiles();
-
-  const merged = new Map<string, Profile>();
-  [...localityMatches, ...departmentMatches, ...featuredMatches].forEach((profile) => {
-    if (!merged.has(profile.id)) {
-      merged.set(profile.id, profile);
-    }
-  });
-
-  return Array.from(merged.values());
-}
-
-// Helper re-export so callers can compose route + query params without
-// importing slug logic separately.
-export { matchesSlugOrId };
-
-// ── Ownership-aware operations ─────────────────────────────────────
-
-function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
-export async function getProfileByOwnerUserId(ownerUserId: string): Promise<Profile | null> {
-  const profiles = await fetchJson<Profile[]>(
-    `/profiles?ownerUserId=${encodeURIComponent(ownerUserId)}`,
-  );
-  return Array.isArray(profiles) && profiles.length ? profiles[0] : null;
-}
-
-export async function createProfileForUser(
-  userId: string,
-  input: Omit<Profile, 'id' | 'slug' | 'ownerUserId' | 'status' | 'verified' | 'rating' | 'reviewsCount' | 'featured' | 'createdAt' | 'updatedAt' | 'avatarFallback' | 'professionNormalized'>,
-): Promise<Profile> {
-  const now = new Date().toISOString();
-  const slug = slugify(`${input.displayName} ${input.profession} ${input.locality}`);
-  const professionNormalized = slugify(input.profession);
-
-  const profile: Partial<Profile> = {
-    ...input,
-    id: `profile-${Date.now()}`,
-    slug,
-    name: input.displayName,
-    professionNormalized,
-    avatarFallback: `https://api.dicebear.com/10.x/initials/svg?seed=${encodeURIComponent(input.displayName)}`,
-    ownerUserId: userId,
-    status: 'active',
-    verified: false,
-    rating: 0,
-    reviewsCount: 0,
-    featured: false,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  return fetchJson<Profile>('/profiles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(profile),
-  });
-}
-
-export async function updateOwnedProfile(
-  id: string,
-  ownerUserId: string,
-  input: Partial<Profile>,
-): Promise<Profile> {
-  const existing = await getProfileById(id);
-  if (!existing) throw new Error('Perfil no encontrado.');
-  if (existing.ownerUserId !== ownerUserId) {
-    throw new Error('No tenés permiso para editar este perfil.');
+  if (location.department || location.departmentId) {
+    return getProfiles({
+      department: location.department || undefined,
+      departmentId: location.departmentId || undefined,
+      limit: 50,
+    });
   }
-
-  // Strip system fields that owners should not modify
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { ownerUserId: _ou, verified: _v, rating: _r, reviewsCount: _rc, featured: _f, ...safeInput } = input as Record<string, unknown>;
-
-  return fetchJson<Profile>(`/profiles/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...safeInput,
-      updatedAt: new Date().toISOString(),
-    }),
-  });
+  return [];
 }
 
-export async function deleteOwnedProfile(id: string, ownerUserId: string): Promise<unknown> {
-  const existing = await getProfileById(id);
-  if (!existing) throw new Error('Perfil no encontrado.');
-  if (existing.ownerUserId !== ownerUserId) {
-    throw new Error('No tenés permiso para eliminar este perfil.');
-  }
-
-  return fetchJson<unknown>(`/profiles/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-  });
+export async function getProfessionSuggestions(q: string): Promise<string[]> {
+  const response = await apiClient.get<{ suggestions: string[] }>('/suggestions', { params: { q } });
+  return response.data.suggestions;
 }
 
-export async function deactivateOwnedProfile(id: string, ownerUserId: string): Promise<Profile> {
-  const existing = await getProfileById(id);
-  if (!existing) throw new Error('Perfil no encontrado.');
-  if (existing.ownerUserId !== ownerUserId) {
-    throw new Error('No tenés permiso para desactivar este perfil.');
-  }
-
-  return fetchJson<Profile>(`/profiles/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      status: 'inactive',
-      updatedAt: new Date().toISOString(),
-    }),
-  });
+export function matchesSlugOrId(profile: Profile, value: string): boolean {
+  const normalize = (input: string | undefined) => (input || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return [profile.department, profile.departmentId, profile.locality, profile.localityId]
+    .some((candidate) => normalize(candidate) === normalize(value));
 }

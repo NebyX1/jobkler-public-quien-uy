@@ -1,23 +1,39 @@
 import axios from 'axios';
 
-/**
- * Axios client configured to talk to the backend.
- *
- * Authentication is handled via HTTP-only session cookies set by
- * the backend during the FusionAuth OAuth2 callback. We only need
- * to set `withCredentials: true` so the browser sends/receives
- * the session cookies cross-origin.
- *
- * We deliberately do NOT manually inject `Authorization: Bearer`
- * tokens. The backend uses cookie-based sessions, not header-based
- * tokens.
- */
-const BASE_URL =
-  (import.meta.env.VITE_AUTH_API_DOMAIN as string | undefined) ??
-  'http://localhost:5000';
+const CSRF_COOKIE = 'jobkler_csrf';
+
+function readCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const prefix = `${name}=`;
+  return document.cookie.split('; ').find((item) => item.startsWith(prefix))?.slice(prefix.length);
+}
 
 export const apiClient = axios.create({
-  baseURL: BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: '/api',
   withCredentials: true,
+  headers: { 'Content-Type': 'application/json' },
 });
+
+apiClient.interceptors.request.use(async (config) => {
+  const method = (config.method || 'get').toLowerCase();
+  if (!['post', 'put', 'patch', 'delete'].includes(method)) return config;
+
+  let token = readCookie(CSRF_COOKIE);
+  if (!token) {
+    await apiClient.get('/auth/csrf');
+    token = readCookie(CSRF_COOKIE);
+  }
+  if (token) config.headers.set('X-CSRF-Token', decodeURIComponent(token));
+  return config;
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.error;
+      if (typeof message === 'string') error.message = message;
+    }
+    return Promise.reject(error);
+  },
+);

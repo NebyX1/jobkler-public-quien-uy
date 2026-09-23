@@ -19,40 +19,29 @@ export function ProfileFormPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEdit = window.location.pathname.includes('/editar');
 
   const { data: existingProfile, isLoading } = useQuery({
     queryKey: ['my-profile', user?.fusionauth_user_id],
-    queryFn: () => getProfileByOwnerUserId(user!.fusionauth_user_id),
+    queryFn: () => getProfileByOwnerUserId(),
     enabled: isEdit && Boolean(user?.fusionauth_user_id),
   });
 
   // If creating, check if profile already exists
   const { data: existingForCreate, isLoading: checkingCreate } = useQuery({
     queryKey: ['my-profile-check', user?.fusionauth_user_id],
-    queryFn: () => getProfileByOwnerUserId(user!.fusionauth_user_id),
+    queryFn: () => getProfileByOwnerUserId(),
     enabled: !isEdit && Boolean(user?.fusionauth_user_id),
   });
 
   const handleSubmit = async (values: ProfileFormValues) => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
     setSubmitError(null);
+    setIsSubmitting(true);
 
     try {
-      const categoryName =
-        values.categoryId === 'profesionales' ? 'Profesionales' :
-        values.categoryId === 'oficios' ? 'Oficios' :
-        values.categoryId === 'bienestar-y-salud' ? 'Bienestar y salud' :
-        values.categoryId === 'belleza' ? 'Belleza' :
-        values.categoryId === 'hogar' ? 'Hogar' :
-        values.categoryId === 'tecnologia' ? 'Tecnología' :
-        values.categoryId === 'educacion' ? 'Educación' :
-        values.categoryId === 'espiritualidad' ? 'Espiritualidad' :
-        values.categoryId === 'eventos' ? 'Eventos' :
-        values.categoryId === 'servicios-rurales' ? 'Servicios rurales' :
-        values.categoryId;
-
       const serviceArea = values.serviceArea
         ? values.serviceArea.split(',').map((s) => s.trim()).filter(Boolean)
         : [];
@@ -62,7 +51,6 @@ export function ProfileFormPage() {
 
       const profileInput = {
         displayName: values.displayName,
-        category: categoryName,
         categoryId: values.categoryId,
         profession: values.profession,
         shortDescription: values.shortDescription,
@@ -85,15 +73,17 @@ export function ProfileFormPage() {
       };
 
       if (isEdit && existingProfile) {
-        await updateOwnedProfile(existingProfile.id, user.fusionauth_user_id, profileInput as Partial<Profile>);
+        await updateOwnedProfile(existingProfile.id, profileInput as Partial<Profile>);
       } else {
-        await createProfileForUser(user.fusionauth_user_id, profileInput as Parameters<typeof createProfileForUser>[1]);
+        await createProfileForUser(profileInput as Parameters<typeof createProfileForUser>[0]);
       }
 
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });
       navigate('/mi-perfil');
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Error al guardar el perfil.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -145,6 +135,7 @@ export function ProfileFormPage() {
         onSubmit={handleSubmit}
         onCancel={() => navigate('/mi-perfil')}
         isEditing={isEdit}
+        isSubmitting={isSubmitting}
       />
     </div>
   );

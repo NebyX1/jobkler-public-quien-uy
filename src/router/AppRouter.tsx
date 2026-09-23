@@ -13,6 +13,7 @@ import { NotFoundPage } from '../pages/NotFoundPage';
 import { SearchResultsPage } from '../pages/SearchResultsPage';
 import { NearMePage } from '../pages/NearMePage';
 import { ProfileDetailPage } from '../pages/ProfileDetailPage';
+import { AdvancedSearchPage } from '../pages/AdvancedSearchPage';
 
 /**
  * Top-level router.
@@ -44,6 +45,7 @@ export function AppRouter() {
 
         {/* Public: search results */}
         <Route path="/buscar" element={<SearchResultsPage />} />
+        <Route path="/buscar/avanzada" element={<AdvancedSearchPage />} />
         <Route path="/buscar/:department" element={<SearchResultsPage />} />
         <Route path="/buscar/:department/:locality" element={<SearchResultsPage />} />
         <Route path="/cerca-de-mi" element={<NearMePage />} />

@@ -1,36 +1,46 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Navbar } from '../components/landing/Navbar';
 import { Footer } from '../components/landing/Footer';
 import { ProfileCard } from '../components/landing/ProfileCard';
 import { getProfilesByPredictedLocation } from '../services/profileService';
-import { getPredictedLocation } from '../services/locationService';
+import { getCatalog, getPredictedLocation, saveLastLocation } from '../services/locationService';
+import type { PredictedLocation } from '../types/profile';
 
 export function NearMePage() {
-  const [locationNote, setLocationNote] = useState('');
-  const predictedLocation = useMemo(() => getPredictedLocation(), []);
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['near-me', predictedLocation.department, predictedLocation.locality],
-    queryFn: () => getProfilesByPredictedLocation(predictedLocation),
+  const [location, setLocation] = useState<PredictedLocation>(() => getPredictedLocation());
+  const catalog = useQuery({ queryKey: ['catalog'], queryFn: getCatalog, staleTime: 5 * 60_000 });
+  const department = catalog.data?.departments.find((item) =>
+    item.id === location.departmentId || item.name === location.department,
+  );
+  const localities = catalog.data?.localities.filter((item) => item.departmentId === department?.id) || [];
+  const selectedLocality = localities.find((item) =>
+    item.id === location.localityId || item.name === location.locality,
+  );
+  const { data = [], isLoading, isError } = useQuery({
+    queryKey: ['near-me', department?.id, selectedLocality?.id],
+    queryFn: () => getProfilesByPredictedLocation({
+      department: department?.name || '',
+      departmentId: department?.id,
+      locality: selectedLocality?.name || '',
+      localityId: selectedLocality?.id,
+    }),
+    enabled: Boolean(department && selectedLocality),
   });
 
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationNote('Tu navegador no permite geolocalización.');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      () => {
-        setLocationNote('Ubicación detectada. Elegí el departamento/localidad para afinar resultados.');
-      },
-      () => {
-        setLocationNote('No pudimos acceder a tu ubicación. Podés seguir buscando por zona.');
-      },
-      { enableHighAccuracy: false, timeout: 10000 },
-    );
+  const chooseDepartment = (id: string) => {
+    const next = catalog.data?.departments.find((item) => item.id === id);
+    setLocation({ department: next?.name || '', departmentId: next?.id, locality: '', localityId: undefined });
+  };
+  const chooseLocality = (id: string) => {
+    const next = localities.find((item) => item.id === id);
+    const current = {
+      department: department?.name || '', departmentId: department?.id,
+      locality: next?.name || '', localityId: next?.id,
+    };
+    setLocation(current);
+    if (department && next) saveLastLocation(current);
   };
 
   return (
@@ -40,77 +50,59 @@ export function NearMePage() {
         <section className="py-10 sm:py-12">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="rounded-[2.25rem] border border-base-300/70 bg-base-200/50 p-6 shadow-sm sm:p-8">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div className="max-w-2xl">
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                    Cerca de vos
-                  </p>
-                  <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-base-content sm:text-4xl">
-                    Resultados cerca de vos
-                  </h1>
-                  <p className="mt-3 text-base text-base-content/70">
-                    Te mostramos perfiles sugeridos para {predictedLocation.locality}, {predictedLocation.department}.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Link to="/buscar" className="btn btn-outline btn-sm rounded-full border-base-300 text-base-content">
-                    Cambiar ubicación
-                  </Link>
-                  <button type="button" onClick={handleUseLocation} className="btn btn-primary btn-sm rounded-full">
-                    Usar mi ubicación
-                  </button>
-                </div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Cerca de vos</p>
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-base-content sm:text-4xl">Servicios por localidad</h1>
+              <p className="mt-3 max-w-2xl text-base text-base-content/70">
+                Elegí una zona para ver perfiles de esa localidad. Esta búsqueda no usa GPS ni estima distancias.
+              </p>
+              <div className="mt-6 grid gap-4 sm:max-w-2xl sm:grid-cols-2">
+                <label className="text-sm font-semibold text-base-content">
+                  Departamento
+                  <select
+                    value={department?.id || ''}
+                    onChange={(event) => chooseDepartment(event.target.value)}
+                    className="select select-bordered mt-2 w-full rounded-2xl bg-base-100"
+                  >
+                    <option value="">Seleccionar departamento</option>
+                    {catalog.data?.departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <label className="text-sm font-semibold text-base-content">
+                  Localidad
+                  <select
+                    value={selectedLocality?.id || ''}
+                    onChange={(event) => chooseLocality(event.target.value)}
+                    disabled={!department}
+                    className="select select-bordered mt-2 w-full rounded-2xl bg-base-100 disabled:opacity-60"
+                  >
+                    <option value="">Seleccionar localidad</option>
+                    {localities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
               </div>
-
-              {locationNote ? (
-                <div className="mt-4 rounded-2xl border border-base-300/70 bg-base-100 p-4 text-sm text-base-content/70">
-                  {locationNote}
-                </div>
-              ) : null}
             </div>
           </div>
         </section>
 
         <section className="pb-12 sm:pb-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {isError ? (
-              <div className="rounded-[2rem] border border-error/20 bg-error/10 p-6 text-base-content">
-                No pudimos conectar con el servidor de perfiles. Ejecutá `npm run dev:api`.
+            {!department || !selectedLocality ? (
+              <div className="rounded-[2rem] border border-base-300/70 bg-base-100 p-8 text-center">
+                <p className="text-base-content/70">Seleccioná departamento y localidad para comenzar.</p>
               </div>
+            ) : isError ? (
+              <div role="alert" className="rounded-[2rem] border border-error/20 bg-error/10 p-6 text-base-content">No pudimos cargar los perfiles. Probá de nuevo en unos instantes.</div>
             ) : isLoading ? (
+              <div className="rounded-[2rem] border border-base-300/70 bg-base-100 p-8 text-center text-base-content/70">Cargando perfiles…</div>
+            ) : data.length ? (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <div key={index} className="rounded-[2rem] border border-base-300/70 bg-base-100 p-5">
-                    <div className="skeleton h-16 w-16 rounded-full" />
-                    <div className="mt-4 space-y-3">
-                      <div className="skeleton h-5 w-2/3 rounded-full" />
-                      <div className="skeleton h-4 w-full rounded-full" />
-                      <div className="skeleton h-20 w-full rounded-2xl" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : data && data.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {data.map((profile) => (
-                  <ProfileCard key={profile.id} profile={profile} compact />
-                ))}
+                {data.map((profile) => <ProfileCard key={profile.id} profile={profile} compact />)}
               </div>
             ) : (
               <div className="rounded-[2rem] border border-base-300/70 bg-base-100 p-8 text-center">
-                <h2 className="text-2xl font-bold text-base-content">No encontramos perfiles cerca de vos.</h2>
-                <p className="mt-2 text-base text-base-content/70">
-                  Probá cambiar la ubicación o buscar en todo Uruguay.
-                </p>
-                <div className="mt-6 flex flex-wrap justify-center gap-3">
-                  <Link to="/buscar" className="btn btn-primary rounded-full">
-                    Buscar en todo Uruguay
-                  </Link>
-                  <Link to="/" className="btn btn-outline rounded-full border-base-300 text-base-content">
-                    Ver inicio
-                  </Link>
-                </div>
+                <h2 className="text-2xl font-bold text-base-content">No encontramos perfiles en {selectedLocality.name}.</h2>
+                <p className="mt-2 text-base text-base-content/70">Probá otra localidad o buscá en todo Uruguay.</p>
+                <Link to="/buscar" className="btn btn-primary mt-6 rounded-full">Buscar profesionales</Link>
               </div>
             )}
           </div>

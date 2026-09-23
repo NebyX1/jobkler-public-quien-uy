@@ -46,8 +46,13 @@ dist-ssr
 venv/
 backend/venv/
 .venv/
+backend/.venv/
+backend/instance/
+backend/logs/
+logs/
+.jobkler/
 __pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
-migrations/

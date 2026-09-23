@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { TRUST_METRICS } from '../../pages/landing/landingData';
+import { useQuery } from '@tanstack/react-query';
+import { getHomeSummary } from '../../services/profileService';
 import { SearchPanel } from './SearchPanel';
 import { QuickChips } from './QuickChips';
 
 export function HeroSection() {
   const [profession, setProfession] = useState('');
+  const { data: home } = useQuery({ queryKey: ['home-summary'], queryFn: getHomeSummary, staleTime: 60_000 });
 
   const handleChipSelect = useCallback((value: string) => {
     setProfession(value);
@@ -57,13 +59,17 @@ export function HeroSection() {
 
           {/* Trust metrics */}
           <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
-            {TRUST_METRICS.map((metric) => (
+            {[
+              { value: home?.metrics.profiles, label: 'Perfiles activos' },
+              { value: home?.metrics.categories, label: 'Categorías con perfiles' },
+              { value: home?.metrics.departments, label: 'Departamentos activos' },
+            ].map((metric) => (
               <div
                 key={metric.label}
                 className="rounded-2xl border border-base-300/60 bg-base-100/75 p-4 shadow-sm"
               >
                 <p className="text-xl font-extrabold text-base-content sm:text-2xl">
-                  {metric.value}
+                  {metric.value ?? '—'}
                 </p>
                 <p className="text-xs text-base-content/60 sm:text-sm">
                   {metric.label}

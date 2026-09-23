@@ -22,6 +22,7 @@ export interface ProfileCardProfile {
   rating?: number;
   reviewsCount?: number;
   tags?: string[];
+  isFictionalDemo?: boolean;
 }
 
 interface ProfileCardProps {
@@ -36,6 +37,7 @@ export function ProfileCard({ profile, compact = false }: ProfileCardProps) {
   const profileName = profile.displayName || profile.name;
   const areaLabel = `${profile.locality}, ${profile.department}`;
   const whatsappHref = profile.whatsapp ? `https://wa.me/${profile.whatsapp}` : null;
+  const hasReviews = Boolean(profile.reviewsCount && profile.reviewsCount > 0);
 
   return (
     <article className="flex h-full flex-col justify-between rounded-[2rem] border border-base-300/70 bg-base-100 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6">
@@ -89,9 +91,11 @@ export function ProfileCard({ profile, compact = false }: ProfileCardProps) {
       </div>
 
       <div className="mt-4 flex items-center gap-2 text-sm text-base-content/60">
-        <Star className="h-4 w-4 text-warning" />
-        <span className="font-semibold text-base-content">{profile.rating?.toFixed(1) ?? '4.8'}</span>
-        <span>({profile.reviewsCount ?? 0} reseñas)</span>
+        {hasReviews ? <>
+          <Star className="h-4 w-4 text-warning" />
+          <span className="font-semibold text-base-content">{profile.rating?.toFixed(1) ?? '—'}</span>
+          <span>({profile.reviewsCount} reseñas)</span>
+        </> : <span>Sin reseñas publicadas</span>}
       </div>
 
       <div className="mt-auto flex flex-col gap-2 pt-5 sm:flex-row">

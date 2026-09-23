@@ -1,10 +1,8 @@
 # =======================================================
 # Stage 1: Build
-# Vite bakes VITE_* env vars at compile time.
-# In Coolify: add VITE_API_URL as a Build Variable.
-# Docker manual: --build-arg VITE_API_URL=https://api.example.com
+# Browser requests use the relative /api path served through nginx.
 # =======================================================
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -14,11 +12,6 @@ RUN npm ci
 
 # Copy source code
 COPY . .
-
-# VITE_API_URL is required at build time.
-# Must point to the Flask backend's public URL (e.g. https://api.civicflow.example.com/api)
-ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
 

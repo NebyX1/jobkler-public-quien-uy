@@ -5,12 +5,8 @@ import { SearchPanel } from '../components/landing/SearchPanel';
 import { Navbar } from '../components/landing/Navbar';
 import { Footer } from '../components/landing/Footer';
 import { ProfileCard } from '../components/landing/ProfileCard';
-import { getProfiles } from '../services/profileService';
+import { getProfilesPage } from '../services/profileService';
 import { normalizeText } from '../utils/textSearch';
-
-function hasAnyQueryValue(values: Array<string | null | undefined>) {
-  return values.some((value) => Boolean(value && value.trim()));
-}
 
 function buildTitle({
   q,
@@ -68,7 +64,7 @@ function SkeletonCard() {
 }
 
 export function SearchResultsPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const params = useParams<{ department?: string; locality?: string }>();
 
   const resolvedFilters = useMemo(() => {
@@ -80,25 +76,32 @@ export function SearchResultsPage() {
       profession: searchParams.get('profession') || '',
     };
 
-    const hasQuery = hasAnyQueryValue(Object.values(queryValues));
-
     return {
       q: queryValues.q,
-      department: hasQuery ? queryValues.department : params.department || '',
-      locality: hasQuery ? queryValues.locality : params.locality || '',
+      department: queryValues.department || params.department || '',
+      locality: queryValues.locality || params.locality || '',
       category: queryValues.category,
       profession: queryValues.profession,
     };
   }, [params.department, params.locality, searchParams]);
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['search-results', resolvedFilters],
-    queryFn: () => getProfiles(resolvedFilters),
+  const currentPage = Math.max(1, Number(searchParams.get('page')) || 1);
+
+  const { data: pageData, isLoading, isError } = useQuery({
+    queryKey: ['search-results', resolvedFilters, currentPage],
+    queryFn: () => getProfilesPage({ ...resolvedFilters, page: currentPage, limit: 12 }),
   });
 
+  const data = pageData?.items || [];
   const title = buildTitle(resolvedFilters);
-  const subtitle = `${data?.length ?? 0} perfiles disponibles.`;
+  const subtitle = `${pageData?.total ?? 0} perfiles disponibles.`;
   const compactSearchClassName = 'mx-auto w-full max-w-6xl';
+  const goToPage = (page: number) => {
+    const next = new URLSearchParams(searchParams);
+    if (page <= 1) next.delete('page');
+    else next.set('page', String(page));
+    setSearchParams(next);
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-base-100">
@@ -196,7 +199,7 @@ export function SearchResultsPage() {
                 <div className="rounded-[2rem] border border-error/20 bg-error/10 p-6 text-base-content">
                   <h2 className="text-lg font-bold">No pudimos cargar los perfiles</h2>
                   <p className="mt-2 text-sm text-base-content/70">
-                    Verificá que JSON Server esté corriendo en el puerto 3001.
+                    Verificá que el servidor local esté disponible e intentá de nuevo.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Link to="/" className="btn btn-primary btn-sm rounded-full">
@@ -213,12 +216,19 @@ export function SearchResultsPage() {
                     <SkeletonCard key={index} />
                   ))}
                 </div>
-              ) : data && data.length > 0 ? (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                  {data.map((profile) => (
-                    <ProfileCard key={profile.id} profile={profile} compact />
-                  ))}
-                </div>
+              ) : data.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    {data.map((profile) => <ProfileCard key={profile.id} profile={profile} compact />)}
+                  </div>
+                  {pageData && pageData.pages > 1 ? (
+                    <nav aria-label="Paginación de resultados" className="mt-8 flex items-center justify-center gap-4">
+                      <button className="btn btn-outline btn-sm rounded-full" disabled={currentPage <= 1} onClick={() => goToPage(currentPage - 1)}>Anterior</button>
+                      <span className="text-sm text-base-content/70">Página {pageData.page} de {pageData.pages}</span>
+                      <button className="btn btn-outline btn-sm rounded-full" disabled={currentPage >= pageData.pages} onClick={() => goToPage(currentPage + 1)}>Siguiente</button>
+                    </nav>
+                  ) : null}
+                </>
               ) : (
                 <div className="rounded-[2rem] border border-base-300/70 bg-base-100 p-8 text-center shadow-sm">
                   <h2 className="text-2xl font-bold text-base-content">No encontramos perfiles con esos filtros.</h2>

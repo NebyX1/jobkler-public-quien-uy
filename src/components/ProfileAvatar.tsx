@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 interface ProfileAvatarProps {
   src?: string;
@@ -18,33 +18,28 @@ function getInitials(name: string) {
 }
 
 export function ProfileAvatar({ src, fallbackSrc, name, size = 72, className = '' }: ProfileAvatarProps) {
-  const [currentSrc, setCurrentSrc] = useState(src || fallbackSrc || '');
-  const [hasError, setHasError] = useState(false);
+  const sourceKey = JSON.stringify([src || '', fallbackSrc || '']);
+  const [failedState, setFailedState] = useState<{ key: string; urls: string[] } | null>(null);
+  const failedUrls = failedState?.key === sourceKey ? failedState.urls : [];
+  const currentSrc = [src, fallbackSrc].find((candidate) => candidate && !failedUrls.includes(candidate)) || '';
   const initials = useMemo(() => getInitials(name), [name]);
-
-  useEffect(() => {
-    setHasError(false);
-    setCurrentSrc(src || fallbackSrc || '');
-  }, [src, fallbackSrc]);
 
   return (
     <div
       className={`relative inline-flex shrink-0 overflow-hidden rounded-full bg-base-200 ${className}`}
       style={{ width: size, height: size }}
     >
-      {currentSrc && !hasError ? (
+      {currentSrc ? (
         <img
           src={currentSrc}
           alt={name}
           className="h-full w-full object-cover"
           loading="lazy"
           onError={() => {
-            if (fallbackSrc && currentSrc !== fallbackSrc) {
-              setCurrentSrc(fallbackSrc);
-              return;
-            }
-
-            setHasError(true);
+            setFailedState((previous) => ({
+              key: sourceKey,
+              urls: [...(previous?.key === sourceKey ? previous.urls : []), currentSrc],
+            }));
           }}
         />
       ) : (

@@ -5,9 +5,12 @@ import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../../lib/auth';
 import { initialsFromName } from '../../lib/useUserProfile';
 import { queryClient } from '../../api/queryClient';
+import { useQuery } from '@tanstack/react-query';
+import { authApi } from '../../api/auth';
 
 const NAV_LINKS = [
   { label: 'Buscar', href: '/buscar' },
+  { label: 'Búsqueda Avanzada', href: '/buscar/avanzada' },
   { label: 'Categorías', href: '#categorias' },
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Cerca de vos', href: '/cerca-de-mi' },
@@ -19,6 +22,7 @@ export function Navbar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const { user, isAuthenticated, loading, logout } = useAuth();
+  const { data: authConfig } = useQuery({ queryKey: ['auth-config'], queryFn: authApi.config, staleTime: 60_000 });
 
   const displayName = user?.full_name || 'Usuario';
   const picture = user?.picture || undefined;
@@ -49,8 +53,20 @@ export function Navbar() {
     }
   };
 
+  const handleAdvancedSearchClick = () => {
+    const destination = '/buscar/avanzada';
+    if (isAuthenticated) navigate(destination);
+    else goToLogin(destination);
+    setDrawerOpen(false);
+  };
+
   return (
     <header className="sticky top-0 z-50 border-b border-base-300/60 bg-base-100/80 backdrop-blur-xl">
+      {authConfig?.demoBanner ? (
+        <div className="bg-warning/15 px-4 py-1.5 text-center text-xs font-semibold text-base-content">
+          Demostración local · datos ficticios · los contactos de la semilla no inician comunicaciones reales
+        </div>
+      ) : null}
       <nav className="mx-auto grid h-[72px] max-w-7xl grid-cols-2 items-center gap-4 px-4 sm:px-6 lg:grid-cols-[auto_1fr_auto] lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5">
@@ -73,6 +89,15 @@ export function Navbar() {
               >
                 {link.label}
               </a>
+            ) : link.href === '/buscar/avanzada' ? (
+              <button
+                key={link.href}
+                type="button"
+                onClick={handleAdvancedSearchClick}
+                className="text-sm font-semibold text-base-content/70 transition-colors hover:text-primary"
+              >
+                {link.label}
+              </button>
             ) : (
               <NavLink
                 key={link.href}
@@ -263,6 +288,15 @@ export function Navbar() {
                   >
                     {link.label}
                   </a>
+                ) : link.href === '/buscar/avanzada' ? (
+                  <button
+                    key={link.href}
+                    type="button"
+                    onClick={handleAdvancedSearchClick}
+                    className="rounded-xl px-3 py-3 text-left text-sm font-semibold text-base-content/70 transition-colors hover:bg-base-200 hover:text-primary"
+                  >
+                    {link.label}
+                  </button>
                 ) : (
                   <NavLink
                     key={link.href}

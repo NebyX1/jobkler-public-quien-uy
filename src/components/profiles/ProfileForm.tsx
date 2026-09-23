@@ -1,23 +1,11 @@
-import { useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Save, X } from 'lucide-react';
-import { uruguayLocations, departmentList } from '../../data/uruguayLocations';
 import type { Profile } from '../../types/profile';
-
-const CATEGORIES = [
-  { id: 'profesionales', name: 'Profesionales' },
-  { id: 'oficios', name: 'Oficios' },
-  { id: 'bienestar-y-salud', name: 'Bienestar y salud' },
-  { id: 'belleza', name: 'Belleza' },
-  { id: 'hogar', name: 'Hogar' },
-  { id: 'tecnologia', name: 'Tecnología' },
-  { id: 'educacion', name: 'Educación' },
-  { id: 'espiritualidad', name: 'Espiritualidad' },
-  { id: 'eventos', name: 'Eventos' },
-  { id: 'servicios-rurales', name: 'Servicios rurales' },
-];
+import { getCatalog } from '../../services/locationService';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
@@ -37,13 +25,14 @@ const profileSchema = z.object({
   serviceArea: z.string().optional().or(z.literal('')),
   tags: z.string().optional().or(z.literal('')),
   availability: z.string().optional().or(z.literal('')),
-  yearsExperience: z.number().min(0).optional(),
+  yearsExperience: z.coerce.number().min(0).max(100).optional(),
 }).refine(
   (data) => data.phone || data.whatsapp || data.email,
   { message: 'Ingresá al menos un medio de contacto (teléfono, WhatsApp o email).', path: ['phone'] },
 );
 
-export type ProfileFormValues = z.infer<typeof profileSchema>;
+export type ProfileFormValues = z.output<typeof profileSchema>;
+type ProfileFormInput = z.input<typeof profileSchema>;
 
 interface ProfileFormProps {
   initialData?: Profile | null;
@@ -51,10 +40,6 @@ interface ProfileFormProps {
   onCancel: () => void;
   isEditing?: boolean;
   isSubmitting?: boolean;
-}
-
-function getCategoryIdByName(name: string): string {
-  return CATEGORIES.find((c) => c.name === name)?.id || '';
 }
 
 /**
@@ -69,7 +54,9 @@ export function ProfileForm({
   isEditing = false,
   isSubmitting = false,
 }: ProfileFormProps) {
-  const defaultValues = useMemo<Partial<ProfileFormValues>>(() => {
+  const { data: catalog } = useQuery({ queryKey: ['catalog'], queryFn: getCatalog, staleTime: 5 * 60_000 });
+  const categories = useMemo(() => catalog?.categories ?? [], [catalog?.categories]);
+  const defaultValues = useMemo<Partial<ProfileFormInput>>(() => {
     if (!initialData) {
       return {
         displayName: '',
@@ -94,7 +81,7 @@ export function ProfileForm({
     }
     return {
       displayName: initialData.displayName || initialData.name,
-      categoryId: initialData.categoryId || getCategoryIdByName(initialData.category),
+      categoryId: initialData.categoryId || categories.find((category) => category.name === initialData.category)?.id || '',
       profession: initialData.profession,
       shortDescription: initialData.shortDescription,
       description: initialData.description,
@@ -112,40 +99,32 @@ export function ProfileForm({
       availability: initialData.availability || '',
       yearsExperience: initialData.yearsExperience || 0,
     };
-  }, [initialData]);
+  }, [initialData, categories]);
 
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     formState: { errors },
-  } = useForm<ProfileFormValues>({
+  } = useForm<ProfileFormInput, unknown, ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues,
   });
 
-  const selectedDepartment = watch('department');
+  const selectedDepartment = useWatch({ control, name: 'department' });
   const localities = useMemo(
-    () => (selectedDepartment ? uruguayLocations[selectedDepartment] ?? [] : []),
-    [selectedDepartment],
+    () => catalog?.localities.filter((locality) => locality.department === selectedDepartment).map((locality) => locality.name) || [],
+    [catalog, selectedDepartment],
   );
-
-  // Reset locality when department changes
-  useEffect(() => {
-    const sub = watch((_value, { name }) => {
-      if (name === 'department') {
-        setValue('locality', '', { shouldValidate: false });
-      }
-    });
-    return () => sub.unsubscribe();
-  }, [watch, setValue]);
+  const departmentList = catalog?.departments.map((department) => department.name) || [];
 
   const fieldClasses =
     'h-12 w-full rounded-2xl border border-base-300/70 bg-base-100 px-4 text-sm text-base-content placeholder:text-base-content/40 transition focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/35';
   const labelClasses =
     'mb-2 block text-xs font-semibold uppercase tracking-wide text-base-content/60';
   const errorClasses = 'mt-1 text-xs text-error';
+  const departmentField = register('department');
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -163,7 +142,7 @@ export function ProfileForm({
             <label htmlFor="categoryId" className={labelClasses}>Categoría *</label>
             <select id="categoryId" {...register('categoryId')} className={fieldClasses}>
               <option value="">Seleccionar categoría</option>
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
@@ -242,7 +221,15 @@ export function ProfileForm({
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="department" className={labelClasses}>Departamento *</label>
-            <select id="department" {...register('department')} className={fieldClasses}>
+            <select
+              id="department"
+              {...departmentField}
+              onChange={(event) => {
+                void departmentField.onChange(event);
+                setValue('locality', '', { shouldValidate: false });
+              }}
+              className={fieldClasses}
+            >
               <option value="">Seleccionar departamento</option>
               {departmentList.map((dep) => (
                 <option key={dep} value={dep}>{dep}</option>

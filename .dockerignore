@@ -1,32 +1,11 @@
-# Dependencies
 node_modules
-
-# Build output
 dist
-
-# Git metadata
-.git
-
-# Backend / extras not needed for frontend image
-backend/
-sample-backend/
-sample-frontend/
-
-# IDE / editor config
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS files
-Thumbs.db
-.DS_Store
-
-# Env files
+backend/.venv
+backend/instance
+backend/logs
+logs
+.jobkler
 .env
-.env.*
-!.env.example
-
-# Optional local scripts if truly unused by build
-scripts/
+backend/.env
+*.sqlite3
+*.log

@@ -18,19 +18,14 @@ import type { ComponentType } from 'react';
 
 /**
  * UI-only data for the Quien.uy landing page.
- * Profile data now comes from JSON Server.
+ * Profile data now comes from the Flask API.
  */
 
 export interface CategoryItem {
+  id: string;
   icon: ComponentType<{ className?: string }>;
   name: string;
   description: string;
-  count: string;
-}
-
-export interface LocalityItem {
-  name: string;
-  status: string;
 }
 
 export interface StepItem {
@@ -56,32 +51,17 @@ export const QUICK_CHIPS = [
   'Eventos',
 ];
 
-export const TRUST_METRICS = [
-  { value: '500+', label: 'Perfiles activos' },
-  { value: '5', label: 'Departamentos' },
-  { value: '100%', label: 'Contacto directo' },
-];
-
 export const CATEGORIES: CategoryItem[] = [
-  { icon: Briefcase, name: 'Profesionales', description: 'Contadores, abogados, arquitectos y más.', count: '128 perfiles' },
-  { icon: Wrench, name: 'Oficios', description: 'Electricistas, plomeros, albañiles, pintores.', count: '214 perfiles' },
-  { icon: HeartPulse, name: 'Bienestar y salud', description: 'Psicólogos, fisioterapeutas, terapeutas.', count: '86 perfiles' },
-  { icon: Sparkles, name: 'Belleza', description: 'Peluquería, maquillaje, uñas, estética.', count: '64 perfiles' },
-  { icon: Home, name: 'Hogar', description: 'Limpieza, jardinería, mantenimiento, mudanzas.', count: '152 perfiles' },
-  { icon: Laptop, name: 'Tecnología', description: 'Soporte, redes, desarrollo, reparación de PC.', count: '47 perfiles' },
-  { icon: GraduationCap, name: 'Educación', description: 'Tutores, profesores, capacitaciones, idiomas.', count: '73 perfiles' },
-  { icon: Flower2, name: 'Espiritualidad', description: 'Reiki, astrología, terapias alternativas.', count: '29 perfiles' },
-  { icon: PartyPopper, name: 'Eventos', description: 'Catering, animación, sonido, fotografía.', count: '58 perfiles' },
-  { icon: Tractor, name: 'Servicios rurales', description: 'Tractoristas, agronomía, ganadería, rurales.', count: '41 perfiles' },
-];
-
-export const LOCALITIES: LocalityItem[] = [
-  { name: 'Minas', status: 'Activo' },
-  { name: 'Lavalleja', status: 'Activo' },
-  { name: 'Montevideo', status: 'Activo' },
-  { name: 'Canelones', status: 'Activo' },
-  { name: 'Maldonado', status: 'Activo' },
-  { name: 'Todo Uruguay', status: 'Próximamente' },
+  { id: 'profesionales', icon: Briefcase, name: 'Profesionales', description: 'Profesionales independientes.' },
+  { id: 'oficios', icon: Wrench, name: 'Oficios', description: 'Oficios y mantenimiento.' },
+  { id: 'bienestar-y-salud', icon: HeartPulse, name: 'Bienestar y salud', description: 'Bienestar y salud.' },
+  { id: 'belleza', icon: Sparkles, name: 'Belleza', description: 'Cuidado personal y belleza.' },
+  { id: 'hogar', icon: Home, name: 'Hogar', description: 'Servicios para el hogar.' },
+  { id: 'tecnologia', icon: Laptop, name: 'Tecnología', description: 'Tecnología y soporte.' },
+  { id: 'educacion', icon: GraduationCap, name: 'Educación', description: 'Clases y apoyo educativo.' },
+  { id: 'espiritualidad', icon: Flower2, name: 'Espiritualidad', description: 'Servicios de espiritualidad.' },
+  { id: 'eventos', icon: PartyPopper, name: 'Eventos', description: 'Servicios para eventos.' },
+  { id: 'servicios-rurales', icon: Tractor, name: 'Servicios rurales', description: 'Oficios y servicios rurales.' },
 ];
 
 export const STEPS: StepItem[] = [
@@ -102,5 +82,4 @@ export const PROVIDER_BENEFITS = [
   'Contacto directo.',
   'Visibilidad local.',
   'Perfil compartible.',
-  'Sin comisiones en esta primera etapa.',
 ];

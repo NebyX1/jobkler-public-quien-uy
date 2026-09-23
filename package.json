@@ -1,17 +1,17 @@
 {
-  "name": "boilerplate",
+  "name": "quien-uy-local-demo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 127.0.0.1 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "server": "json-server src/data/db.json --port 3001",
-    "dev:api": "json-server src/data/db.json --port 3001",
-    "dev:all": "concurrently -k -n vite,api -c cyan,magenta \"npm run dev\" \"npm run dev:api\""
+    "preview": "vite preview --host 127.0.0.1 --strictPort",
+    "test": "node scripts/test-backend.mjs",
+    "verify": "npm run build && npm run lint && npm test"
   },
+  "engines": { "node": ">=22.12.0 <23" },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@tanstack/react-query": "^5.99.2",
@@ -37,13 +37,11 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "concurrently": "^10.0.3",
     "daisyui": "^5.0.43",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
-    "json-server": "^1.0.0-beta.15",
     "tailwindcss": "^4.1.11",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",

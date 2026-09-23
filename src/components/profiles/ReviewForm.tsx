@@ -16,7 +16,7 @@ interface ReviewFormProps {
  * Reviews are immutable after submission. The user must acknowledge
  * this before the submit button is enabled.
  *
- * Frontend guard for local JSON Server mock. Real backend must enforce
+ * Frontend guard for reviews. The Flask backend also enforces
  * ownership, uniqueness, and immutability rules in production.
  */
 export function ReviewForm({ onSubmit }: ReviewFormProps) {

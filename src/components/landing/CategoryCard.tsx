@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { CategoryItem } from '../../pages/landing/landingData';
 
 /**
@@ -6,12 +7,12 @@ import type { CategoryItem } from '../../pages/landing/landingData';
  * top row, followed by title, description and a small "Explorar"
  * CTA anchored to the bottom.
  */
-export function CategoryCard({ item }: { item: CategoryItem }) {
+export function CategoryCard({ item }: { item: CategoryItem & { count: number } }) {
   const Icon = item.icon;
 
   return (
-    <a
-      href="#buscar"
+    <Link
+      to={`/buscar?category=${encodeURIComponent(item.id)}`}
       className="group flex min-h-[230px] flex-col justify-between rounded-[2rem] border border-base-300/70 bg-base-100 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
     >
       <div className="flex items-center justify-between gap-3">
@@ -19,7 +20,7 @@ export function CategoryCard({ item }: { item: CategoryItem }) {
           <Icon className="h-6 w-6" />
         </span>
         <span className="badge badge-sm rounded-full border-0 bg-base-200 font-semibold text-base-content/60">
-          {item.count}
+          {item.count} {item.count === 1 ? 'perfil' : 'perfiles'}
         </span>
       </div>
 
@@ -34,6 +35,6 @@ export function CategoryCard({ item }: { item: CategoryItem }) {
         Explorar
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </span>
-    </a>
+    </Link>
   );
 }

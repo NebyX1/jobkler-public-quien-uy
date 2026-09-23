@@ -1,10 +1,1 @@
-from flask import Blueprint
-
-api_bp = Blueprint("api", __name__, url_prefix="/api")
-auth_public_bp = Blueprint('auth_public', __name__)
-
-from . import (  # noqa: F401,E402
-    auth,
-    books,
-    users,
-)
+"""HTTP routes for the public Jobkler service."""

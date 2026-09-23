@@ -1,0 +1,12 @@
+{
+  "fastembed_version": "0.6.1",
+  "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "repository": "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q",
+  "revision": "faf4aa4225822f3bc6376869cb1164e8e3feedd0",
+  "model_file": "model_optimized.onnx",
+  "dimension": 384,
+  "maximum_sequence_tokens": 128,
+  "chunk_processor_version": "sentence-token-window-v1",
+  "provider": "CPUExecutionProvider",
+  "vector_storage": "IEEE-754 float32 little-endian"
+}

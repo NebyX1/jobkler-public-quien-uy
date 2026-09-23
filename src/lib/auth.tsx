@@ -21,11 +21,13 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import { apiClient } from '../api/client';
+import { authApi } from '../api/auth';
+import { queryClient } from '../api/queryClient';
 
 // ── Types ───────────────────────────────────────────────────────────
 
 export interface AuthUser {
+  id: string;
   fusionauth_user_id: string;
   email: string | null;
   email_verified: boolean;
@@ -35,6 +37,8 @@ export interface AuthUser {
   picture: string | null;
   roles: string[];
   auth_provider: string;
+  has_profile: boolean;
+  is_demo: boolean;
 }
 
 interface AuthContextValue {
@@ -43,6 +47,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: () => void;
   logout: () => Promise<void>;
+  loginDemo: (key: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -56,8 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchMe = useCallback(async () => {
     try {
-      const res = await apiClient.get<AuthUser>('/api/auth/me');
-      setUser(res.data);
+      setUser(await authApi.me());
     } catch {
       setUser(null);
     } finally {
@@ -66,60 +70,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void fetchMe();
+    const request = window.setTimeout(() => void fetchMe(), 0);
+    return () => window.clearTimeout(request);
   }, [fetchMe]);
 
   const login = useCallback(() => {
-    // Clear only app-owned auth/user/session cache before starting
-    // a fresh Google login. We do NOT clear unrelated user data.
-    const authKeyPatterns = [
-      'auth',
-      'user',
-      'session',
-      'token',
-      'profile',
-      'supertokens',
-      'fusionauth',
-    ];
-    const isAuthKey = (key: string) =>
-      authKeyPatterns.some((p) => key.toLowerCase().includes(p));
+    window.location.assign('/api/auth/login/google');
+  }, []);
 
-    try {
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i);
-        if (key && isAuthKey(key)) localStorage.removeItem(key);
-      }
-      for (let i = sessionStorage.length - 1; i >= 0; i--) {
-        const key = sessionStorage.key(i);
-        if (key && isAuthKey(key)) sessionStorage.removeItem(key);
-      }
-    } catch {
-      // Storage may be unavailable (incognito, etc.) — ignore.
-    }
-
-    // Build the backend Google login URL. The forced Google flow must
-    // start on Flask so the backend can create state + PKCE and redirect
-    // to FusionAuth; do not send the browser to Vite's `/api` origin.
-    //
-    // The backend endpoint redirects the browser to FusionAuth's
-    // `/oauth2/authorize` with `idp_hint=google` and `prompt=login`,
-    // forcing a fresh Google login and preventing silent session
-    // reuse.
-    const apiDomain =
-      import.meta.env.VITE_API_BASE_URL ||
-      import.meta.env.VITE_AUTH_API_DOMAIN ||
-      'http://localhost:5000';
-    const base = apiDomain ? apiDomain.replace(/\/$/, '') : '';
-    window.location.href = `${base}/api/auth/login/google?force=1`;
+  const loginDemo = useCallback(async (key: string) => {
+    queryClient.clear();
+    const nextUser = await authApi.loginDemo(key);
+    setUser(nextUser);
   }, []);
 
   const logout = useCallback(async () => {
     try {
-      await apiClient.post('/api/auth/logout');
+      await authApi.logout();
     } catch {
       // ignore — the cookie may already be gone
     }
     setUser(null);
+    queryClient.clear();
   }, []);
 
   const refresh = useCallback(async () => {
@@ -132,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: user !== null,
     login,
     logout,
+    loginDemo,
     refresh,
   };
 
@@ -140,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 // ── Hook ────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {

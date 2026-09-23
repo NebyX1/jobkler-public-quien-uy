@@ -1,0 +1,3 @@
+# Optional production server and MariaDB driver. Not needed for local SQLite.
+gunicorn==24.1.1
+mariadb==1.1.14
