@@ -1,3 +1,5 @@
+> **Informe histórico del 23 de septiembre de 2026.** Las observaciones sobre Qwen inaccesible y los conteos de perfiles reflejan aquel momento. La integración actual y sus verificaciones posteriores se describen en [CHANGELOG.md](../CHANGELOG.md), [Arquitectura-Actual.md](Arquitectura-Actual.md) y la [guía del motor](../ai-engine/README.md). La evaluación completa del corpus no se declara ejecutada aquí.
+
 # Informe de implementación local: Búsqueda Avanzada
 
 Fecha: 2026-09-23  

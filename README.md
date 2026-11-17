@@ -2,6 +2,13 @@
 
 Aplicación React + Vite con API Flask y base SQLite local. El acceso de demostración crea sesiones de backend con cookie HttpOnly; perfiles, reseñas y permisos se guardan y validan en SQLite. No requiere FusionAuth, MariaDB, Redis ni Docker para el uso local.
 
+## Guías vigentes
+
+- [Instalar desde cero en otro equipo](docs/Guia-para-otro-equipo.md): descargas verificables, arranque, comprobaciones y diagnóstico.
+- [Arquitectura actual y diagramas](docs/Arquitectura-Actual.md): componentes, flujo de búsqueda e indexación.
+- [Guía del motor Qwen](ai-engine/README.md) y [búsqueda avanzada](docs/Busqueda-Avanzada.md): configuración y comportamiento en detalle.
+- [Indicaciones para agentes](AGENTS.md) y [cambios recientes](CHANGELOG.md).
+
 ## Requisitos fijados
 
 - Node.js 22.15.1 (.nvmrc; compatible con Vite 8).
@@ -48,7 +55,7 @@ El segundo inicio normal conserva perfiles, reseñas, cambios y configuración. 
 
 Los perfiles ficticios incluyen 42 prestadores iniciales, 9 fixtures de búsqueda y 300 perfiles ampliados distribuidos en las diez categorías y los 19 departamentos. De los perfiles ampliados, 210 mencionan trabajos adicionales solo en su descripción, para probar búsquedas de experiencia fuera del oficio principal. Los valores de perfiles y reseñas son persistentes; los promedios y contadores se calculan desde las reseñas publicadas. Los contactos de la semilla se dejan vacíos y las fotos usan iniciales locales, por lo que no se inicia ninguna comunicación real.
 
-La semilla está versionada y solo agrega registros faltantes una vez. No restaura registros que alguien eliminó después. El reset explícito elimina la base completa de demo y la reconstruye mediante Alembic.
+Las semillas base y ampliada se aplican una vez y no restauran perfiles que se eliminen después. Los nueve fixtures de búsqueda son distintos: el arranque vuelve a crear los que falten por ID. El reset explícito elimina la base completa de demo y la reconstruye mediante Alembic; los fixtures y la población ampliada se agregan al siguiente arranque normal.
 
 ## API y base de datos
 
@@ -65,7 +72,7 @@ SQLite es el único motor necesario localmente. La capa SQLAlchemy y los modelos
 
 ## FusionAuth
 
-La demo local es el modo inicial y no cambia automáticamente si FusionAuth falla. Para usar FusionAuth en un entorno local, editá backend/.env manteniendo DATABASE_URL=sqlite:///jobkler-demo.sqlite3, APP_HOST=127.0.0.1, y establecé:
+La demo local es el modo inicial y no cambia automáticamente si FusionAuth falla. La búsqueda avanzada de esta entrega solo se habilita con autenticación demo local. Para usar FusionAuth en un entorno local, editá backend/.env manteniendo DATABASE_URL=sqlite:///jobkler-demo.sqlite3, APP_HOST=127.0.0.1, desactivá `AI_SEARCH_ENABLED` y establecé:
 
 - AUTH_MODE=fusionauth
 - FUSIONAUTH_BASE_URL, FUSIONAUTH_ISSUER

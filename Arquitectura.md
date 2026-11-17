@@ -1,3 +1,5 @@
+> **Documento histórico.** Describe una etapa anterior con JSON Server y rutas que ya no representan la demo local. Para los componentes y diagramas vigentes, consultá [Arquitectura-Actual.md](docs/Arquitectura-Actual.md); para instalar, [Guia-para-otro-equipo.md](docs/Guia-para-otro-equipo.md).
+
 # Arquitectura de Quien.uy
 
 ## 1. Resumen ejecutivo

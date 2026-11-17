@@ -1,3 +1,5 @@
+> **Guía histórica de un mock opcional.** El arranque actual de Jobkler usa Flask y SQLite para `/api`; no inicia JSON Server. Consultá la [guía vigente](../../docs/Guia-para-otro-equipo.md).
+
 # JSON Server para Quien.uy
 
 JSON Server se usa como **mock backend local** para Quien.uy durante el

@@ -43,7 +43,7 @@ Linux:
 ./run.sh
 ```
 
-Los scripts revisan puertos sin terminar procesos ajenos, migran solo `sqlite:///jobkler-demo.sqlite3`, agregan fixtures una sola vez, reconstruyen FTS y preparan el encoder. Con la configuración predeterminada también inician el servidor de `ai-engine/`, verifican su modelo y arrancan Flask, Vite y el worker de embeddings. La guía de archivos, claves y uso del motor está en [ai-engine/README.md](../ai-engine/README.md).
+Los scripts revisan puertos sin terminar procesos ajenos, migran solo `sqlite:///jobkler-demo.sqlite3`, agregan los fixtures de búsqueda faltantes por ID, reconstruyen FTS y preparan el encoder. Con la configuración predeterminada también inician el servidor de `ai-engine/`, verifican su modelo y arrancan Flask, Vite y el worker de embeddings. La guía de archivos, claves y uso del motor está en [ai-engine/README.md](../ai-engine/README.md).
 
 La semilla ampliada agrega 300 perfiles ficticios en las diez categorías y los 19 departamentos; 210 declaran trabajos adicionales únicamente en la descripción. Por ejemplo, se pueden buscar instalación de aire acondicionado, reparación de termofones, fotografía de productos o cuidado de mascotas, aun cuando el perfil tenga otra actividad principal. Se aplica una sola vez y no restaura perfiles editados o borrados.
 

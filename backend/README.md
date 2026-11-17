@@ -1,3 +1,5 @@
+> **Documento histórico de otro backend.** La demo local actual usa Flask y SQLite bajo `/api`; esta guía APMS no describe su configuración ni sus endpoints activos. Consultá el [README principal](../README.md) y la [arquitectura actual](../docs/Arquitectura-Actual.md).
+
 # Agil Proyect Management Software - APMS – Backend
 
 Backend REST desarrollado con Flask, SQLAlchemy, Flask-JWT-Extended y Flask-Migrate.

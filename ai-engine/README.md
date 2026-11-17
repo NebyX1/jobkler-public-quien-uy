@@ -80,7 +80,7 @@ El puerto y el alias deben coincidir en ambos archivos. Para cambiar la clave, d
 
 ## Copiar o reconstruir en otra computadora
 
-El GGUF y los binarios se excluyen de Git por su tamaño. Al copiar esta carpeta manualmente, incluí `bin/` y `models/`; al clonar el repositorio, preparalos por separado:
+El GGUF y los binarios se excluyen de Git por su tamaño. La [guía de instalación desde cero](../docs/Guia-para-otro-equipo.md) incluye comandos completos para descargarlos y verificar sus hashes. Al copiar esta carpeta manualmente, incluí `bin/` y `models/`; al clonar el repositorio, preparalos por separado:
 
 1. Descargá [Qwen3.5-2B-Q4_K_M.gguf, revisión fijada](https://huggingface.co/lmstudio-community/Qwen3.5-2B-GGUF/blob/bb84e11355a036e28f080c7793fa6d22b7c4e344/Qwen3.5-2B-Q4_K_M.gguf) y guardalo en `ai-engine/models/` con ese nombre. Verificá el SHA-256 anterior para obtener la misma copia usada aquí. El archivo de igual nombre del repositorio de Unsloth tiene otro hash y no es esta copia exacta.
 2. Para Windows x64 CPU, obtené el paquete de [llama.cpp build 11052](https://github.com/ggml-org/llama.cpp/releases/tag/b11052) y colocá `llama-server.exe` **con todas sus DLL** en `ai-engine/bin/`. En Linux usá el binario nativo compatible y sus bibliotecas.
