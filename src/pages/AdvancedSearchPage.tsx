@@ -96,8 +96,11 @@ export function AdvancedSearchPage() {
       if (sequence.current === requestSequence) setResponse(result);
     } catch (reason) {
       if (sequence.current !== requestSequence || (axios.isAxiosError(reason) && reason.code === 'ERR_CANCELED')) return;
+      const data = axios.isAxiosError(reason) ? reason.response?.data : undefined;
       const message = axios.isAxiosError(reason)
-        ? (typeof reason.response?.data?.error === 'string' ? reason.response.data.error : reason.message)
+        ? (typeof data?.error === 'string' ? data.error
+          : typeof data?.error?.message === 'string' ? data.error.message
+          : typeof data?.message === 'string' ? data.message : reason.message)
         : reason instanceof Error ? reason.message : 'No se pudo completar la búsqueda.';
       setError(message || 'No se pudo completar la búsqueda. Probá otra vez.');
     } finally {

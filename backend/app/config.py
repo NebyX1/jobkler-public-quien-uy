@@ -27,9 +27,10 @@ class Config:
     AI_SEARCH_ENABLED = as_bool(os.environ.get("AI_SEARCH_ENABLED"), False)
     AI_LLM_BASE_URL = os.environ.get("AI_LLM_BASE_URL", "http://127.0.0.1:8081/v1").rstrip("/")
     AI_LLM_MODEL = os.environ.get("AI_LLM_MODEL", "Qwen3.5-2B-Q4_K_M.gguf").strip()
+    AI_LLM_API_KEY = os.environ.get("AI_LLM_API_KEY", "").strip()
     AI_SEARCH_TIMEOUT_SECONDS = float(os.environ.get("AI_SEARCH_TIMEOUT_SECONDS", "20"))
     AI_SEARCH_CONNECT_TIMEOUT_SECONDS = float(os.environ.get("AI_SEARCH_CONNECT_TIMEOUT_SECONDS", "2"))
-    AI_SEARCH_QUEUE_WAIT_SECONDS = float(os.environ.get("AI_SEARCH_QUEUE_WAIT_SECONDS", "0.15"))
+    AI_SEARCH_QUEUE_WAIT_SECONDS = float(os.environ.get("AI_SEARCH_QUEUE_WAIT_SECONDS", "10"))
     AI_SEARCH_RATE_LIMIT_PER_HOUR = int(os.environ.get("AI_SEARCH_RATE_LIMIT_PER_HOUR", "20"))
     AI_SEARCH_SEMANTIC_ENABLED = as_bool(os.environ.get("AI_SEARCH_SEMANTIC_ENABLED"), True)
     AI_SEARCH_SEMANTIC_MIN_COSINE = float(os.environ.get("AI_SEARCH_SEMANTIC_MIN_COSINE", "0.54"))
@@ -88,8 +89,8 @@ def validate_runtime_config(app):
             raise RuntimeError("AI_SEARCH_TIMEOUT_SECONDS debe estar entre 0.1 y 60 segundos.")
         if not (0.1 <= cfg["AI_SEARCH_CONNECT_TIMEOUT_SECONDS"] <= 10):
             raise RuntimeError("AI_SEARCH_CONNECT_TIMEOUT_SECONDS debe estar entre 0.1 y 10 segundos.")
-        if not (0.0 <= cfg["AI_SEARCH_QUEUE_WAIT_SECONDS"] <= 2.0):
-            raise RuntimeError("AI_SEARCH_QUEUE_WAIT_SECONDS debe estar entre 0 y 2 segundos.")
+        if not (0.0 <= cfg["AI_SEARCH_QUEUE_WAIT_SECONDS"] <= 15.0):
+            raise RuntimeError("AI_SEARCH_QUEUE_WAIT_SECONDS debe estar entre 0 y 15 segundos.")
         if not (1 <= cfg["AI_SEARCH_RATE_LIMIT_PER_HOUR"] <= 120):
             raise RuntimeError("AI_SEARCH_RATE_LIMIT_PER_HOUR debe estar entre 1 y 120.")
         if not (1 <= cfg["AI_SEARCH_EMBEDDING_THREADS"] <= 8):

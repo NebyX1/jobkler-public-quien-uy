@@ -3,6 +3,8 @@ set -u
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 STATE_DIR="$ROOT_DIR/.jobkler"
+BACKEND_DIR="$ROOT_DIR/backend"
+VENV_DIR="$BACKEND_DIR/.venv"
 
 stop_one() {
   local name="$1"
@@ -55,3 +57,12 @@ fi
 stop_one indexer "$VENV_DIR/bin/python" "$BACKEND_DIR"
 stop_one web "$ROOT_DIR/node_modules/vite/bin/vite.js" "$ROOT_DIR"
 stop_one api "$ROOT_DIR/backend/wsgi.py" "$ROOT_DIR/backend"
+if [[ -f "$STATE_DIR/ai-engine.pid" ]]; then
+  ENGINE_PYTHON="$VENV_DIR/bin/python"
+  if [[ ! -x "$ENGINE_PYTHON" ]]; then ENGINE_PYTHON="$(command -v python3.11 || true)"; fi
+  if [[ -n "$ENGINE_PYTHON" ]]; then
+    "$ENGINE_PYTHON" "$ROOT_DIR/ai-engine/engine.py" stop
+  else
+    printf 'No hay Python disponible para verificar y detener el motor local.\n' >&2
+  fi
+fi

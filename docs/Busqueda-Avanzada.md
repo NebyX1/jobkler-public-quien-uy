@@ -19,7 +19,7 @@ La búsqueda común sigue siendo pública y mantiene su ruta existente. La avanz
 
 El encoder CPU es `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`, artefacto ONNX de Qdrant, revisión `faf4aa4225822f3bc6376869cb1164e8e3feedd0`, FastEmbed `0.6.1`, 384 dimensiones y hasta 128 tokens. El manifiesto de descarga registra SHA-256. El cache vive bajo `backend/instance/fastembed/` y Git lo ignora. El procesamiento reserva tokens especiales, genera ventanas solapadas y conserva posiciones literales, incluso al final de biografías largas.
 
-Qwen se configura con `AI_LLM_BASE_URL` y el alias real visible en `/v1/models`. La llamada usa JSON Schema, `stream=false`, hasta 256 tokens y pensamiento desactivado. El límite total inicial es 20 s y la conexión se limita a 2 s. Un semáforo protege una única instancia del servidor Flask; esta primera versión debe ejecutarse como un proceso Flask, además del worker de embeddings.
+Qwen se configura con `AI_LLM_BASE_URL` y el alias real visible en `/v1/models`. Si el servidor exige autenticación, configurá también `AI_LLM_API_KEY` en `backend/.env` con la misma clave que usa el servidor; el backend la envía como Bearer y nunca al navegador. La llamada usa JSON Schema, `stream=false`, hasta 256 tokens y pensamiento desactivado. El límite inicial de inferencia es 20 s y la conexión se limita a 2 s. Si otra consulta está usando el modelo, se espera hasta 10 s por defecto antes de informar que está ocupado; ese tiempo se puede ajustar con `AI_SEARCH_QUEUE_WAIT_SECONDS`. Un semáforo protege una única instancia del servidor Flask; esta primera versión debe ejecutarse como un proceso Flask, además del worker de embeddings.
 
 ## Interfaz y evidencia
 
@@ -43,7 +43,9 @@ Linux:
 ./run.sh
 ```
 
-Los scripts revisan puertos sin terminar procesos ajenos, migran solo `sqlite:///jobkler-demo.sqlite3`, agregan fixtures una sola vez, reconstruyen FTS, preparan el encoder, consultan `/v1/models` sin iniciar ni modificar llama.cpp, inician Flask y Vite, y mantienen un worker persistente si el encoder está listo.
+Los scripts revisan puertos sin terminar procesos ajenos, migran solo `sqlite:///jobkler-demo.sqlite3`, agregan fixtures una sola vez, reconstruyen FTS y preparan el encoder. Con la configuración predeterminada también inician el servidor de `ai-engine/`, verifican su modelo y arrancan Flask, Vite y el worker de embeddings. La guía de archivos, claves y uso del motor está en [ai-engine/README.md](../ai-engine/README.md).
+
+La semilla ampliada agrega 300 perfiles ficticios en las diez categorías y los 19 departamentos; 210 declaran trabajos adicionales únicamente en la descripción. Por ejemplo, se pueden buscar instalación de aire acondicionado, reparación de termofones, fotografía de productos o cuidado de mascotas, aun cuando el perfil tenga otra actividad principal. Se aplica una sola vez y no restaura perfiles editados o borrados.
 
 Comandos útiles desde `backend/`:
 
@@ -51,6 +53,7 @@ Comandos útiles desde `backend/`:
 python -m flask --app wsgi:app search-model-check
 python -m flask --app wsgi:app search-model-prepare
 python -m flask --app wsgi:app seed-search-fixtures
+python -m flask --app wsgi:app seed-expanded-profiles
 python -m flask --app wsgi:app search-rebuild
 python -m flask --app wsgi:app search-index-status
 python -m flask --app wsgi:app search-worker

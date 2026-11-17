@@ -77,6 +77,19 @@ def seed_search_fixtures_command():
     click.echo(f"Fixtures de búsqueda sintéticos: {added} perfiles nuevos.")
 
 
+@click.command("seed-expanded-profiles")
+@with_appcontext
+def seed_expanded_profiles_command():
+    """Add a broader fictional demo population once, with secondary work in biographies."""
+    require_local_search_database()
+    from app.search.expanded_fixtures import seed_expanded_profiles
+    result = seed_expanded_profiles()
+    if result["skipped"]:
+        click.echo("Perfiles ficticios ampliados: sin cambios (ya inicializados).")
+    else:
+        click.echo(f"Perfiles ficticios ampliados: {result['profiles']} nuevos; {result['with_extra']} con trabajos adicionales en su descripción.")
+
+
 @click.command("search-rebuild")
 @click.option("--force", is_flag=True, help="Descarta embeddings y vuelve a encolar todas las revisiones activas.")
 @with_appcontext
@@ -148,10 +161,12 @@ def search_index_status_command():
 @with_appcontext
 def search_check_llm_command():
     """Read the configured llama.cpp model list; never starts or changes that server."""
+    from app.search.llm import authorization_headers
     base_url = current_app.config["AI_LLM_BASE_URL"].rstrip("/")
     try:
         with requests.Session() as session:
             session.trust_env = False
+            session.headers.update(authorization_headers(current_app.config["AI_LLM_API_KEY"]))
             response = session.get(f"{base_url}/models", timeout=(2, 3))
         response.raise_for_status()
         models = response.json().get("data", [])
@@ -290,7 +305,7 @@ def search_evaluate_command(split):
 
     from app.models import Profile, ProfileSearchChunk, ProfileSearchDocument
     from app.search.encoder import encode_normalized, get_encoder
-    from app.search.llm import InferenceBusy, InferenceUnavailable, extract_intent
+    from app.search.llm import InferenceBusy, InferenceUnavailable, authorization_headers, extract_intent
     from app.search.engine import deterministic_intent, prepare_intent, profession_spelling_options, search_profiles
     from app.search.model_manifest import MODEL_DIMENSION, MODEL_NAME, MODEL_REVISION
     from app.api.jobkler import serialize_profile
@@ -326,6 +341,7 @@ def search_evaluate_command(split):
     try:
         with requests.Session() as session:
             session.trust_env = False
+            session.headers.update(authorization_headers(cfg["AI_LLM_API_KEY"]))
             response = session.get(f"{cfg['AI_LLM_BASE_URL'].rstrip('/')}/models", timeout=(2, 3))
             response.raise_for_status()
             available_models = [item.get("id") for item in response.json().get("data", []) if isinstance(item, dict)]
@@ -349,6 +365,7 @@ def search_evaluate_command(split):
         try:
             intent = extract_intent(
                 case["query"], base_url=cfg["AI_LLM_BASE_URL"], model=cfg["AI_LLM_MODEL"],
+                api_key=cfg["AI_LLM_API_KEY"],
                 timeout_seconds=cfg["AI_SEARCH_TIMEOUT_SECONDS"],
                 connect_timeout_seconds=cfg["AI_SEARCH_CONNECT_TIMEOUT_SECONDS"],
                 queue_wait_seconds=cfg["AI_SEARCH_QUEUE_WAIT_SECONDS"],
@@ -512,6 +529,7 @@ def register_commands(app):
     app.cli.add_command(reset_demo_command)
     for command in (
         seed_search_fixtures_command,
+        seed_expanded_profiles_command,
         search_rebuild_command,
         search_model_prepare_command,
         search_model_check_command,

@@ -1,7 +1,10 @@
+import asyncio
 import json
 import re
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,14 +13,15 @@ from sqlalchemy import select, text
 
 from app import create_app
 from app.extensions import db
-from app.models import Profile, ProfileSearchChunk, ProfileSearchDocument, ProfileSearchIndexJob
+from app.models import Account, Profile, ProfileSearchChunk, ProfileSearchDocument, ProfileSearchIndexJob, SeedState
 from app.models.jobkler import utcnow
 from app.seed_data import seed_jobkler
 from app.search.contracts import SearchIntent
 from app.search.documents import rebuild_search_documents, sync_profile_search
 from app.search.model_manifest import MODEL_DIMENSION, MODEL_NAME, MODEL_REVISION
 from app.search.fixtures import seed_search_fixtures
-from app.search.llm import InferenceUnavailable, extract_intent
+from app.search.expanded_fixtures import SEED_KEY, seed_expanded_profiles
+from app.search.llm import InferenceBusy, InferenceUnavailable, extract_intent
 
 
 def make_intent(*, profession=None, action="reparar", obj="termofones", location="Minas"):
@@ -90,6 +94,60 @@ class AdvancedSearchTest(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         extract.assert_not_called()
         self.assertEqual(self.client.get("/api/profiles?q=termofones").status_code, 200)
+
+    def test_expanded_seed_indexes_secondary_work_and_preserves_later_changes(self):
+        with self.app.app_context():
+            result = seed_expanded_profiles()
+            self.assertEqual((result["profiles"], result["with_extra"]), (300, 210))
+            profiles = db.session.scalars(select(Profile).where(Profile.id.like("expanded-demo-%"))).all()
+            self.assertEqual(len(profiles), 300)
+            self.assertEqual(len({profile.category_id for profile in profiles}), 10)
+            self.assertEqual(len({profile.department_id for profile in profiles}), 19)
+            sample = db.session.get(Profile, "expanded-demo-011")
+            self.assertIn("aire acondicionado", sample.description)
+            self.assertNotIn("aire acondicionado", " ".join((sample.profession, sample.short_description, *sample.tags)).lower())
+            self.assertIn("aire acondicionado", db.session.get(ProfileSearchDocument, sample.id).description)
+            self.assertTrue(sample.is_demo_fixture)
+            self.assertFalse(sample.phone or sample.whatsapp or sample.contact_email)
+
+        intent = SearchIntent(
+            status="ok", search_text="instalar aire acondicionado", profession_text=None,
+            action_text="instalar", object_text="aire acondicionado", location_text=None,
+            related_terms=[], excluded_terms=[],
+        )
+        response = self.post_search(query="Necesito instalar aire acondicionado", intent=intent)
+        self.assertEqual(response.status_code, 200)
+        result = next(item for item in response.get_json()["results"] if item["profile"]["id"] == "expanded-demo-011")
+        self.assertEqual(result["evidence"]["sourceField"], "description")
+
+        with self.app.app_context():
+            sample = db.session.get(Profile, "expanded-demo-011")
+            sample.display_name = "Nombre editado Demo"
+            db.session.delete(db.session.get(Profile, "expanded-demo-012"))
+            db.session.commit()
+            self.assertTrue(seed_expanded_profiles()["skipped"])
+            self.assertEqual(db.session.get(Profile, "expanded-demo-011").display_name, "Nombre editado Demo")
+            self.assertIsNone(db.session.get(Profile, "expanded-demo-012"))
+
+    def test_expanded_seed_rejects_reserved_id_collision(self):
+        with self.app.app_context():
+            db.session.add(Account(id="expanded-demo-owner-001", display_name="Cuenta existente"))
+            db.session.commit()
+            with self.assertRaisesRegex(RuntimeError, "ID o slug reservado"):
+                seed_expanded_profiles()
+            self.assertIsNone(db.session.get(SeedState, SEED_KEY))
+            self.assertIsNone(db.session.get(Profile, "expanded-demo-001"))
+
+    def test_advanced_passes_configured_llm_key_only_to_server(self):
+        self.app.config["AI_LLM_API_KEY"] = "private-test-key"
+        self.login_if_needed()
+        with patch("app.api.advanced_search.extract_intent", return_value=make_intent()) as extract:
+            response = self.client.post(
+                "/api/search/advanced", json={"query": "Reparar termofones en Minas"}, headers=self.headers,
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(extract.call_args.kwargs["api_key"], "private-test-key")
+        self.assertNotIn(b"private-test-key", response.data)
 
     def test_text_evidence_location_coverage_installation_negation_and_inactive_rules(self):
         response = self.post_search()
@@ -376,8 +434,9 @@ class AdvancedSearchTest(unittest.TestCase):
                 return self.response
 
         success_client = FakeClient(FakeResponse("stop", json.dumps(valid)))
-        with patch("app.search.llm.httpx.AsyncClient", return_value=success_client):
-            result = extract_intent("Reparo termofones en Minas", base_url="http://127.0.0.1:8081/v1", model="fixture", timeout_seconds=1, connect_timeout_seconds=0.5)
+        with patch("app.search.llm.httpx.AsyncClient", return_value=success_client) as factory:
+            result = extract_intent("Reparo termofones en Minas", base_url="http://127.0.0.1:8081/v1", model="fixture", api_key="private-test-key", timeout_seconds=1, connect_timeout_seconds=0.5)
+        self.assertEqual(factory.call_args.kwargs["headers"], {"Authorization": "Bearer private-test-key"})
         self.assertEqual(result.status, "ok")
         self.assertEqual(len(success_client.calls), 1)
         request = success_client.calls[0][1]
@@ -386,10 +445,36 @@ class AdvancedSearchTest(unittest.TestCase):
         self.assertEqual(request["chat_template_kwargs"]["enable_thinking"], False)
 
         truncated_client = FakeClient(FakeResponse("length", json.dumps(valid)))
-        with patch("app.search.llm.httpx.AsyncClient", return_value=truncated_client):
+        with patch("app.search.llm.httpx.AsyncClient", return_value=truncated_client) as factory:
             with self.assertRaises(InferenceUnavailable):
                 extract_intent("Reparo termofones en Minas", base_url="http://127.0.0.1:8081/v1", model="fixture", timeout_seconds=1, connect_timeout_seconds=0.5)
+        self.assertEqual(factory.call_args.kwargs["headers"], {})
         self.assertEqual(len(truncated_client.calls), 1)
+
+    def test_inference_waits_for_the_active_request_and_reports_a_full_queue(self):
+        started = threading.Event()
+        release = threading.Event()
+
+        async def fake_request(query, **_kwargs):
+            if query == "first":
+                started.set()
+                await asyncio.to_thread(release.wait, 3)
+            return make_intent()
+
+        args = {"base_url": "http://127.0.0.1:8081/v1", "model": "fixture"}
+        with patch("app.search.llm._request_intent", side_effect=fake_request):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                first = pool.submit(extract_intent, "first", **args)
+                try:
+                    self.assertTrue(started.wait(2))
+                    with self.assertRaises(InferenceBusy):
+                        extract_intent("busy", queue_wait_seconds=0.05, **args)
+                    waiting = pool.submit(extract_intent, "waiting", queue_wait_seconds=1, **args)
+                    release.set()
+                    self.assertEqual(first.result(timeout=2).status, "ok")
+                    self.assertEqual(waiting.result(timeout=2).status, "ok")
+                finally:
+                    release.set()
 
     def test_account_rate_limit_is_enforced_by_persistent_sql_rows(self):
         self.app.config["AI_SEARCH_RATE_LIMIT_PER_HOUR"] = 1

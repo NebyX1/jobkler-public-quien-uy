@@ -41,3 +41,18 @@ $vitePath = Join-Path $Root 'node_modules\vite\bin\vite.js'
 Stop-Tracked 'indexer' $indexerPython
 Stop-Tracked 'web' $vitePath
 Stop-Tracked 'api' $wsgiPath
+
+$engineScript = Join-Path $Root 'ai-engine\engine.py'
+$enginePython = Join-Path $Root 'backend\.venv\Scripts\python.exe'
+if (!(Test-Path -LiteralPath $enginePython)) {
+    $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    $enginePython = if ($pythonCommand) { $pythonCommand.Source } else { $null }
+}
+if ($enginePython -and (Test-Path -LiteralPath $engineScript)) {
+    $engineResult = @(& $enginePython $engineScript stop)
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo detener el motor local de Jobkler.' }
+    $engineState = ($engineResult -join "`n") | ConvertFrom-Json
+    if ($engineState.stopped) { Write-Host 'Motor Qwen local detenido.' }
+} elseif (Test-Path -LiteralPath (Join-Path $StateDir 'ai-engine.pid')) {
+    Write-Warning 'No hay Python disponible para verificar y detener el motor local.'
+}

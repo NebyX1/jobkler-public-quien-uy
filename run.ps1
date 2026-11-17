@@ -14,6 +14,8 @@ $Venv = Join-Path $Backend '.venv'
 $StartedApi = $null
 $StartedWeb = $null
 $StartedIndexer = $null
+$StartedEngine = $false
+$EngineScript = Join-Path $Root 'ai-engine\engine.py'
 $KeepRunning = $false
 $ApiPidFile = Join-Path $StateDir 'api.pid'
 $WebPidFile = Join-Path $StateDir 'web.pid'
@@ -74,6 +76,8 @@ try {
 
     & $SystemPython (Join-Path $Root 'scripts\prepare_local.py')
     if ($LASTEXITCODE -ne 0) { throw 'La configuración local no pasó la validación; no se ejecutó ninguna migración.' }
+    & $SystemPython $EngineScript prepare | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar la configuración del motor local.' }
 
     $portArgs = @()
     if ($ApiPort -gt 0) { $portArgs += @('--api-port', "$ApiPort") }
@@ -129,11 +133,19 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo inicializar la semilla local.' }
     & $VenvPython -m flask --app wsgi:app seed-search-fixtures
     if ($LASTEXITCODE -ne 0) { throw 'No se pudieron inicializar los fixtures sintéticos de búsqueda.' }
+    & $VenvPython -m flask --app wsgi:app seed-expanded-profiles
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudieron inicializar los perfiles ficticios ampliados.' }
     & $VenvPython -m flask --app wsgi:app search-rebuild
     if ($LASTEXITCODE -ne 0) { throw 'No se pudieron sincronizar los documentos locales de búsqueda.' }
     & $VenvPython -m flask --app wsgi:app search-model-prepare
     $modelReady = $LASTEXITCODE -eq 0
     if (!$modelReady) { Write-Warning 'El encoder no está listo; la búsqueda avanzada seguirá disponible por texto y mostrará su modo reducido.' }
+    $engineOutput = @(& $SystemPython $EngineScript start)
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar el motor local; revisá el diagnóstico anterior.' }
+    $engineState = ($engineOutput -join "`n") | ConvertFrom-Json
+    $StartedEngine = [bool]$engineState.started
+    if ($engineState.managed) { Write-Host 'Motor Qwen local: listo.' }
+    else { Write-Host 'Motor Qwen: configuración externa.' }
     & $VenvPython -m flask --app wsgi:app search-check-llm
 } finally { Pop-Location }
 
@@ -202,11 +214,18 @@ try {
     exit 1
 } finally {
     if (!$KeepRunning -or !$NoWait) {
-        if ($StartedWeb) { Stop-OwnedProcess $StartedWeb.Id $vitePath }
-        if ($StartedIndexer) { Stop-OwnedProcess $StartedIndexer.Id $VenvPython }
-        if ($StartedApi) { Stop-OwnedProcess $StartedApi.Id $wsgiPath }
-        if (!$KeepRunning -or !$NoWait) {
-            Remove-Item -LiteralPath $IndexerPidFile, $WebPidFile, $ApiPidFile -Force -ErrorAction SilentlyContinue
+        if ($StartedWeb) {
+            Stop-OwnedProcess $StartedWeb.Id $vitePath
+            Remove-Item -LiteralPath $WebPidFile -Force -ErrorAction SilentlyContinue
         }
+        if ($StartedIndexer) {
+            Stop-OwnedProcess $StartedIndexer.Id $VenvPython
+            Remove-Item -LiteralPath $IndexerPidFile -Force -ErrorAction SilentlyContinue
+        }
+        if ($StartedApi) {
+            Stop-OwnedProcess $StartedApi.Id $wsgiPath
+            Remove-Item -LiteralPath $ApiPidFile -Force -ErrorAction SilentlyContinue
+        }
+        if ($StartedEngine) { & $SystemPython $EngineScript stop | Out-Null }
     }
 }

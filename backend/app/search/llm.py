@@ -41,6 +41,10 @@ Entrada: "Busco alguien en Minas que instale o repare un calefón"
 Salida: {"status":"ambiguous","search_text":"instalar o reparar calefón","profession_text":null,"action_text":null,"object_text":"calefón","location_text":"Minas","related_terms":[],"excluded_terms":[]}"""
 
 
+def authorization_headers(api_key):
+    return {"Authorization": f"Bearer {api_key}"} if api_key else {}
+
+
 def _intent_schema():
     schema = SearchIntent.model_json_schema()
     schema.pop("title", None)
@@ -48,7 +52,7 @@ def _intent_schema():
     return schema
 
 
-async def _request_intent(query, *, base_url, model, timeout_seconds, connect_timeout_seconds):
+async def _request_intent(query, *, base_url, model, api_key, timeout_seconds, connect_timeout_seconds):
     deadline = time.monotonic() + timeout_seconds
     remaining = max(0.05, deadline - time.monotonic())
     timeout = httpx.Timeout(
@@ -71,7 +75,7 @@ async def _request_intent(query, *, base_url, model, timeout_seconds, connect_ti
         "max_tokens": 256,
         "stream": False,
     }
-    async with httpx.AsyncClient(timeout=timeout, trust_env=False) as client:
+    async with httpx.AsyncClient(timeout=timeout, trust_env=False, headers=authorization_headers(api_key)) as client:
         response = await asyncio.wait_for(
             client.post(f"{base_url.rstrip('/')}/chat/completions", json=body),
             timeout=remaining,
@@ -101,7 +105,7 @@ async def _request_intent(query, *, base_url, model, timeout_seconds, connect_ti
     return intent
 
 
-def extract_intent(query, *, base_url, model, timeout_seconds=20, connect_timeout_seconds=2, queue_wait_seconds=0.15):
+def extract_intent(query, *, base_url, model, api_key="", timeout_seconds=20, connect_timeout_seconds=2, queue_wait_seconds=10):
     if not _INFERENCE_SLOT.acquire(timeout=queue_wait_seconds):
         raise InferenceBusy("El motor local está atendiendo otra búsqueda.")
     try:
@@ -109,6 +113,7 @@ def extract_intent(query, *, base_url, model, timeout_seconds=20, connect_timeou
             query,
             base_url=base_url,
             model=model,
+            api_key=api_key,
             timeout_seconds=timeout_seconds,
             connect_timeout_seconds=connect_timeout_seconds,
         ))

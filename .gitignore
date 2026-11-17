@@ -56,3 +56,17 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Local Qwen runtime artifacts (large binaries and model stay outside Git).
+/ai-engine/bin/
+/ai-engine/models/
+/ai-engine/*.zip
+/ai-engine/_llama_extract/
+*.gguf
+*.ggml
+*.safetensors
+*.onnx
+*.onnx_data
+*.pt
+*.pth
+*.ckpt

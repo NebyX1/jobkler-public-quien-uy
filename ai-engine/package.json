@@ -1,0 +1,10 @@
+{
+  "name": "qwen-llama-cpp-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "benchmark": "node scripts/benchmark.mjs"
+  },
+  "dependencies": {}
+}

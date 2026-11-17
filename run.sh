@@ -15,6 +15,7 @@ NO_WAIT=0
 API_PID=""
 WEB_PID=""
 INDEXER_PID=""
+ENGINE_STARTED=0
 KEEP_RUNNING=0
 STOPPED=0
 
@@ -30,15 +31,32 @@ done
 stop_started() {
   [[ "$STOPPED" == 1 ]] && return 0
   STOPPED=1
-  bash "$ROOT_DIR/stop.sh" || true
+  stop_started_process "$WEB_PID" "$ROOT_DIR/node_modules/vite/bin/vite.js" "$ROOT_DIR" "$WEB_PID_FILE"
+  stop_started_process "$INDEXER_PID" "$VENV_DIR/bin/python" "$BACKEND_DIR" "$INDEXER_PID_FILE"
+  stop_started_process "$API_PID" "$BACKEND_DIR/wsgi.py" "$BACKEND_DIR" "$API_PID_FILE"
+  if [[ "$ENGINE_STARTED" == 1 ]]; then "$PYTHON" "$ROOT_DIR/ai-engine/engine.py" stop || true; fi
+}
+stop_started_process() {
+  local pid="$1" expected="$2" expected_cwd="$3" pid_file="$4"
+  [[ -n "$pid" ]] || return 0
+  local args cwd
+  args="$(ps -p "$pid" -o args= 2>/dev/null || true)"
+  cwd="$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)"
+  if [[ "$args" == *"$expected"* && "$cwd" == "$expected_cwd" ]]; then
+    kill -TERM "$pid" 2>/dev/null || true
+    for _ in {1..20}; do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 0.25
+    done
+    args="$(ps -p "$pid" -o args= 2>/dev/null || true)"
+    cwd="$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)"
+    if [[ "$args" == *"$expected"* && "$cwd" == "$expected_cwd" ]]; then kill -KILL "$pid" 2>/dev/null || true; fi
+  fi
+  if [[ -f "$pid_file" && "$(cat "$pid_file" 2>/dev/null || true)" == "$pid" ]]; then rm -f -- "$pid_file"; fi
 }
 cleanup() {
   if [[ "$KEEP_RUNNING" != 1 ]]; then stop_started; fi
 }
-trap cleanup EXIT
-trap 'KEEP_RUNNING=0; exit 130' INT
-trap 'KEEP_RUNNING=0; exit 143' TERM
-
 NODE_BIN="$(command -v node || true)"
 [[ -n "$NODE_BIN" ]] || { echo 'Node.js 22.15.1 es necesario.' >&2; exit 2; }
 NODE_VERSION="$("$NODE_BIN" -p 'process.versions.node')"
@@ -106,6 +124,11 @@ PY
 check_port "$API_PORT" || { echo "El puerto API $API_PORT está ocupado. Jobkler no detuvo ese proceso." >&2; exit 2; }
 check_port "$WEB_PORT" || { echo "El puerto web $WEB_PORT está ocupado. Jobkler no detuvo ese proceso." >&2; exit 2; }
 
+trap cleanup EXIT
+trap 'KEEP_RUNNING=0; exit 130' INT
+trap 'KEEP_RUNNING=0; exit 143' TERM
+"$PYTHON" "$ROOT_DIR/ai-engine/engine.py" prepare >/dev/null
+
 mkdir -p "$STATE_DIR" "$LOG_DIR" "$BACKEND_DIR/instance"
 if [[ ! -x "$VENV_DIR/bin/python" ]]; then
   "$PYTHON" -m venv "$VENV_DIR"
@@ -136,6 +159,7 @@ export VITE_PORT="$WEB_PORT"
 (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app db upgrade)
 (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app seed-jobkler)
 (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app seed-search-fixtures)
+(cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app seed-expanded-profiles)
 (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app search-rebuild)
 MODEL_READY=0
 if (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app search-model-prepare); then
@@ -143,6 +167,9 @@ if (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app search-model-pre
 else
   echo 'El encoder no está listo; la búsqueda avanzada seguirá disponible por texto y mostrará su modo reducido.' >&2
 fi
+ENGINE_RESULT="$("$PYTHON" "$ROOT_DIR/ai-engine/engine.py" start)"
+ENGINE_STARTED="$("$PYTHON" -c 'import json,sys; print("1" if json.load(sys.stdin).get("started") else "0")' <<< "$ENGINE_RESULT")"
+echo 'Motor Qwen: verificación de inicio completada.'
 (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app search-check-llm)
 
 (

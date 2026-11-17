@@ -30,4 +30,4 @@ Para comprobar el detalle inactivo, iniciá sesión como Prestadora A y consult�
 
 ## Límites de la prueba
 
-La búsqueda es pública y textual. La normalización elimina diferencias de mayúsculas y tildes, pero no resuelve frases naturales, negaciones ni similitud semántica. No se usa ubicación GPS. La futura IA Qwen3.5-2B GGUF con llama.cpp en CPU queda deshabilitada hasta otra entrega y solo debería ofrecerse a usuarios autenticados.
+La búsqueda común es pública y textual. La búsqueda avanzada requiere sesión y combina la interpretación local de Qwen con recuperación textual y semántica; sus límites y el tratamiento de negaciones están documentados en [Busqueda-Avanzada.md](Busqueda-Avanzada.md). No se usa ubicación GPS.

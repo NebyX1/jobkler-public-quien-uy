@@ -7,6 +7,7 @@ Aplicación React + Vite con API Flask y base SQLite local. El acceso de demostr
 - Node.js 22.15.1 (.nvmrc; compatible con Vite 8).
 - Python 3.11.0 (.python-version).
 - PowerShell 5.1 o Bash.
+- El modelo GGUF y un servidor llama.cpp compatible en `ai-engine/`. Los modelos y binarios no se incluyen en Git; consultá [la guía del motor](ai-engine/README.md) para prepararlos en cada equipo.
 
 ## Inicio
 
@@ -20,9 +21,9 @@ Linux:
     bash ./run.sh
     # Ctrl+C detiene solamente los procesos registrados por Jobkler.
 
-Los scripts generan backend/.env y secretos solo cuando hacen falta, instalan dependencias reproducibles, aplican migraciones y ejecutan la semilla idempotente. Revisá logs/ para los registros. La web queda en http://127.0.0.1:5173; Flask escucha en http://127.0.0.1:5000, detrás del proxy /api de Vite.
+Los scripts generan la configuración y los secretos cuando hacen falta, instalan dependencias reproducibles, aplican migraciones y ejecutan la semilla idempotente. También preparan e inician el Qwen local autenticado en `127.0.0.1:8081`; la web queda en http://127.0.0.1:5173 y Flask escucha en http://127.0.0.1:5000, detrás del proxy `/api`. Revisá `logs/` para los registros.
 
-stop.ps1 y stop.sh paran los PIDs que Jobkler registró y verifican su ruta de ejecución. En Linux, ejecutá `bash ./stop.sh`. Si un puerto está ocupado por otro proceso, el inicio se detiene y muestra el diagnóstico; no mata procesos ajenos. Se pueden cambiar puertos de forma coordinada con:
+`stop.ps1` y `stop.sh` paran los procesos que Jobkler registró, incluido el motor Qwen, y verifican su identidad. En Linux, ejecutá `bash ./stop.sh`. Si un puerto está ocupado por otro proceso, el inicio se detiene y muestra el diagnóstico; no mata procesos ajenos. Se pueden cambiar puertos de forma coordinada con:
 
     .\run.ps1 -ApiPort 5001 -WebPort 5174
     ./run.sh --api-port 5001 --web-port 5174
@@ -45,7 +46,7 @@ El segundo inicio normal conserva perfiles, reseñas, cambios y configuración. 
 
 ## Datos de demostración
 
-Los perfiles ficticios incluyen 42 prestadores en Lavalleja, Montevideo, Maldonado y Río Negro. Los valores de perfiles y reseñas son persistentes; los promedios y contadores se calculan desde las reseñas publicadas. Los contactos de la semilla se dejan vacíos y las fotos usan iniciales locales, por lo que no se inicia ninguna comunicación real.
+Los perfiles ficticios incluyen 42 prestadores iniciales, 9 fixtures de búsqueda y 300 perfiles ampliados distribuidos en las diez categorías y los 19 departamentos. De los perfiles ampliados, 210 mencionan trabajos adicionales solo en su descripción, para probar búsquedas de experiencia fuera del oficio principal. Los valores de perfiles y reseñas son persistentes; los promedios y contadores se calculan desde las reseñas publicadas. Los contactos de la semilla se dejan vacíos y las fotos usan iniciales locales, por lo que no se inicia ninguna comunicación real.
 
 La semilla está versionada y solo agrega registros faltantes una vez. No restaura registros que alguien eliminó después. El reset explícito elimina la base completa de demo y la reconstruye mediante Alembic.
 
@@ -74,8 +75,8 @@ La demo local es el modo inicial y no cambia automáticamente si FusionAuth fall
 
 El servidor usa Authorization Code + PKCE, state firmado, validación de firma/issuer/audience/subject/expiry y compara el sub de UserInfo con el del ID token. La identidad se vincula por issuer y subject; no por correo. Los roles se asignan localmente. Esta entrega no dispone de credenciales ni una instancia FusionAuth configurada, por lo que el flujo externo no se validó con Google real.
 
-## Búsqueda avanzada futura
+## Búsqueda avanzada local
 
-La búsqueda actual es pública, léxica y busca en descripciones con normalización de acentos. No interpreta negaciones o intención. Una entrega futura podrá evaluar Qwen3.5-2B GGUF con llama.cpp en CPU únicamente para personas autenticadas. AI_SEARCH_ENABLED=false; no se incluye modelo, RAG, embeddings, Qdrant ni un chatbot simulado.
+La búsqueda común es pública y textual. La búsqueda avanzada requiere sesión y usa Qwen3.5-2B local para interpretar la consulta; combina búsqueda textual en SQLite con un encoder semántico ONNX separado. Si Qwen falla después del arranque, la búsqueda puede continuar en modo reducido y lo indica en la interfaz. Las instrucciones y la configuración del motor están en [ai-engine/README.md](ai-engine/README.md); el funcionamiento de la búsqueda se describe en [docs/Busqueda-Avanzada.md](docs/Busqueda-Avanzada.md).
 
 La verificación descrita es local para Windows con Python 3.11 y Node 22.15.1; no es una validación productiva ni un despliegue.

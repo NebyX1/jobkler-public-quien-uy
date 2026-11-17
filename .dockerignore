@@ -9,3 +9,6 @@ logs
 backend/.env
 *.sqlite3
 *.log
+ai-engine/bin
+ai-engine/models
+ai-engine/.env

@@ -1,0 +1,9 @@
+bin
+models
+.env
+.env.*
+!.env.example
+_llama_extract
+*.zip
+node_modules
+*.log

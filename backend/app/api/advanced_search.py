@@ -57,6 +57,7 @@ def advanced_search():
             payload.query,
             base_url=current_app.config["AI_LLM_BASE_URL"],
             model=current_app.config["AI_LLM_MODEL"],
+            api_key=current_app.config["AI_LLM_API_KEY"],
             timeout_seconds=current_app.config["AI_SEARCH_TIMEOUT_SECONDS"],
             connect_timeout_seconds=current_app.config["AI_SEARCH_CONNECT_TIMEOUT_SECONDS"],
             queue_wait_seconds=current_app.config["AI_SEARCH_QUEUE_WAIT_SECONDS"],
