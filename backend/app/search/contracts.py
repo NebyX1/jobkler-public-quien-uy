@@ -41,6 +41,24 @@ class SearchIntent(BaseModel):
     location_text: ShortText | None
     related_terms: list[TermText] = Field(..., max_length=4)
     excluded_terms: list[TermText] = Field(..., max_length=4)
+    related_services: list[TermText] = Field(default_factory=list, max_length=2)
+    required_terms: list[TermText] = Field(default_factory=list, max_length=3)
+
+
+class RelatedEvidenceSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    accepted: list[Annotated[int, Field(strict=True, ge=1, le=5)]] = Field(max_length=3)
+
+
+class RelatedServicePlan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    services: list[TermText] = Field(max_length=2)
+
+    @field_validator("services", mode="before")
+    @classmethod
+    def cap_proposals(cls, value):
+        # The local model can exceed maxItems. Each retained proposal still needs evidence.
+        return value[:2] if isinstance(value, list) else value
 
 
 class AdvancedSearchError(ValueError):

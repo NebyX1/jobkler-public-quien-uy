@@ -1,4 +1,5 @@
 from difflib import SequenceMatcher
+import re
 
 from sqlalchemy import exists, or_, select
 
@@ -61,7 +62,10 @@ def fuzzy_location_suggestions(value, limit=5):
         if ratio >= 0.66:
             choices.append({"kind": "department", "id": dep.id, "name": dep.name, "departmentId": dep.id, "localityId": None, "score": ratio})
     for loc in db.session.scalars(select(Locality).order_by(Locality.name)).all():
-        ratio = SequenceMatcher(None, query, normalize_text(loc.name)).ratio()
+        name = normalize_text(loc.name)
+        short_name = name.removeprefix("balneario ")
+        partial = short_name == query or short_name.startswith(query + " ")
+        ratio = 1.0 if partial else SequenceMatcher(None, query, name).ratio()
         if ratio >= 0.70:
             choices.append({"kind": "locality", "id": loc.id, "name": loc.name, "department": loc.department.name, "departmentId": loc.department_id, "localityId": loc.id, "score": ratio})
     choices.sort(key=lambda item: (-item["score"], item["kind"] != "locality", item["name"]))
@@ -104,8 +108,19 @@ def resolve_filters(query, location_text, department_id, locality_id):
         department = locality.department
 
     scopes = _mentioned_scopes(query)
+    if not scopes and not location_text:
+        tail = re.search(r"\ben\s+(.+)$", normalize_text(query))
+        if tail:
+            hint = tail[1]
+            if any(
+                normalize_text(option["name"]).removeprefix("balneario ").startswith(hint)
+                for option in fuzzy_location_suggestions(hint)
+            ):
+                location_text = hint
     if location_text and not scopes and normalize_text(location_text) not in {"uruguay", "todo uruguay", "todo el uruguay", "todo el pais"}:
         suggestions = fuzzy_location_suggestions(location_text)
+        if department and not locality:
+            suggestions = [option for option in suggestions if option["departmentId"] == department.id]
         confirmed = any(
             option["departmentId"] == (department.id if department else None)
             and option["localityId"] == (locality.id if locality else None)
@@ -114,6 +129,17 @@ def resolve_filters(query, location_text, department_id, locality_id):
         if confirmed:
             return {"department": department, "locality": locality, "source": "selected"}, None
         if suggestions:
+            hint = normalize_text(location_text)
+            partial = [
+                option for option in suggestions
+                if ((name := normalize_text(option["name"]).removeprefix("balneario ")) == hint
+                    or name.startswith(hint + " "))
+            ]
+            if len(partial) > 1:
+                return None, {
+                    "code": "ambiguous_location", "message": "Encontré más de una ubicación. ¿Dónde querés buscar?",
+                    "options": partial, "requestedText": location_text,
+                }
             return None, {
                 "code": "location_spelling", "message": f"¿Quisiste decir {suggestions[0]['name']}? Elegí una ubicación para filtrar.",
                 "options": suggestions, "requestedText": location_text,
@@ -149,7 +175,11 @@ def resolve_filters(query, location_text, department_id, locality_id):
     return {"department": department, "locality": locality, "source": source}, None
 
 
-def eligible_profiles(statement, geo):
+def eligible_profiles(statement, geo, profession_text=None):
+    if profession_text:
+        from .aliases import profession_aliases
+        aliases = {normalize_text(alias) for alias in profession_aliases(profession_text)}
+        statement = statement.where(Profile.profession_normalized.in_(aliases))
     if geo["locality"]:
         loc = geo["locality"]
         return statement.where(or_(
@@ -171,12 +201,7 @@ def eligible_profiles(statement, geo):
 
 
 def eligible_profile_ids(geo, profession_text=None):
-    from .aliases import profession_aliases
-
     statement = select(Profile.id).where(Profile.status == "active")
-    if profession_text:
-        aliases = {normalize_text(alias) for alias in profession_aliases(profession_text)}
-        statement = statement.where(Profile.profession_normalized.in_(aliases))
-    statement = eligible_profiles(statement, geo)
+    statement = eligible_profiles(statement, geo, profession_text)
     # Coverage is an optional one-to-many relation; EXISTS avoids duplicate profile IDs.
     return set(db.session.scalars(statement.distinct()).all())

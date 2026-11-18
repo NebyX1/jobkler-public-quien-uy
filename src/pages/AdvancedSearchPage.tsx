@@ -67,10 +67,12 @@ function replacePhrase(text: string, phrase: string, replacement = '') {
   return result + text.slice(cursor);
 }
 
-function ResultCard({ result }: { result: AdvancedSearchResult }) {
+function ResultCard({ result, suggestionReason }: { result: AdvancedSearchResult; suggestionReason?: string }) {
   const { profile, evidence, locationLabel } = result;
   const name = profile.displayName || profile.name;
-  const direct = evidence.matchType === 'direct';
+  const matchLabel = suggestionReason !== undefined
+    ? 'Sugerencia relacionada'
+    : evidence.matchType === 'direct' ? 'Coincidencia directa' : 'Experiencia relacionada';
 
   return (
     <article className="flex min-w-0 flex-col rounded-2xl border border-base-300 bg-base-100 p-4">
@@ -87,8 +89,11 @@ function ResultCard({ result }: { result: AdvancedSearchResult }) {
       <blockquote className="my-3 line-clamp-4 border-l-2 border-primary/45 pl-3 text-sm leading-relaxed text-base-content/80">
         “{evidence.text}”
       </blockquote>
+      {suggestionReason && (
+        <p className="mb-3 text-xs leading-relaxed text-base-content/75">{suggestionReason}</p>
+      )}
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="text-base-content/65">{direct ? 'Coincidencia directa' : 'Experiencia relacionada'}{profile.isFictionalDemo ? ' · Perfil ficticio' : ''}</span>
+        <span className="text-base-content/65">{matchLabel}{profile.isFictionalDemo ? ' · Perfil ficticio' : ''}</span>
         <Link to={`/perfil/${profile.slug}`} aria-label={`Ver perfil de ${name}`} className="inline-flex items-center gap-1 font-extrabold text-secondary hover:underline">
           Ver perfil <ArrowRight aria-hidden="true" size={14} />
         </Link>
@@ -110,13 +115,26 @@ function SearchReply({
   const filters = response.applied_filters;
   const area = placeLabel(filters?.locality, filters?.department) || (filters?.locationSource === 'national' ? 'Todo Uruguay' : '');
   const count = response.results.length;
+  const suggestions = response.suggestions ?? [];
+  const showingFallback = suggestions.length > 0 && !response.results.some((result) => result.evidence.matchType === 'direct');
   const needsClarification = response.status === 'ambiguous';
   const options = response.clarification?.options ?? [];
-  const title = count
-    ? `Encontré ${count} ${count === 1 ? 'perfil' : 'perfiles'}`
-    : ['ok', 'empty', 'degraded'].includes(response.status)
-      ? 'No encontré coincidencias suficientes'
-      : response.message;
+  let title = response.message;
+  if (showingFallback) {
+    title = 'No encontré una coincidencia exacta. Estos perfiles podrían ayudarte.';
+  } else if (count) {
+    title = `Encontré ${count} ${count === 1 ? 'perfil' : 'perfiles'}`;
+  } else if (['ok', 'empty', 'degraded'].includes(response.status)) {
+    title = 'No encontré coincidencias suficientes';
+  }
+
+  const resultCards = count > 0 && (
+    <div className="grid gap-2.5 sm:grid-cols-2">
+      {(showAll ? response.results : response.results.slice(0, 4)).map((result) => (
+        <ResultCard key={result.profile.id} result={result} />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-w-0 flex-1 space-y-3">
@@ -145,13 +163,18 @@ function SearchReply({
         ) : null}
       </div>
 
-      {count > 0 && (
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          {(showAll ? response.results : response.results.slice(0, 4)).map((result) => (
-            <ResultCard key={result.profile.id} result={result} />
-          ))}
-        </div>
+      {!showingFallback && resultCards}
+      {suggestions.length > 0 && (
+        <section className="space-y-2" aria-label="Sugerencias relacionadas">
+          {!showingFallback && <h2 className="text-sm font-bold">Sugerencias relacionadas</h2>}
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {suggestions.map((suggestion) => (
+              <ResultCard key={suggestion.profile.id} result={suggestion} suggestionReason={suggestion.reason} />
+            ))}
+          </div>
+        </section>
       )}
+      {showingFallback && resultCards}
       {(options.length > 0 || onBroaden || count > 4) && (
         <div className="flex flex-wrap gap-2">
           {options.map((option) => (

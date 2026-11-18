@@ -105,9 +105,6 @@ def fixture_rows():
 
 def seed_jobkler():
     state = db.session.get(SeedState, SEED_VERSION)
-    if state:
-        return {"skipped": True, "reason": "already_seeded"}
-
     source = json.loads(CATALOG_FILE.read_text(encoding="utf-8"))
     for item in source.get("categories", []):
         if not db.session.get(Category, item["id"]):
@@ -130,6 +127,10 @@ def seed_jobkler():
                 department_id=item["departmentId"], featured=bool(item.get("featured")),
                 sort_order=int(item.get("sortOrder", 0)),
             ))
+    if state:
+        db.session.commit()
+        return {"skipped": True, "reason": "already_seeded"}
+
     for account_id, name, moderator, _key in DEMO_ACCOUNTS:
         if not db.session.get(Account, account_id):
             db.session.add(Account(id=account_id, display_name=name, is_moderator=moderator))

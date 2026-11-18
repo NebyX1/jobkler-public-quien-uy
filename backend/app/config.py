@@ -28,7 +28,7 @@ class Config:
     AI_LLM_BASE_URL = os.environ.get("AI_LLM_BASE_URL", "http://127.0.0.1:8081/v1").rstrip("/")
     AI_LLM_MODEL = os.environ.get("AI_LLM_MODEL", "Qwen3.5-2B-Q4_K_M.gguf").strip()
     AI_LLM_API_KEY = os.environ.get("AI_LLM_API_KEY", "").strip()
-    AI_SEARCH_TIMEOUT_SECONDS = float(os.environ.get("AI_SEARCH_TIMEOUT_SECONDS", "20"))
+    AI_SEARCH_TIMEOUT_SECONDS = float(os.environ.get("AI_SEARCH_TIMEOUT_SECONDS", "40"))
     AI_SEARCH_CONNECT_TIMEOUT_SECONDS = float(os.environ.get("AI_SEARCH_CONNECT_TIMEOUT_SECONDS", "2"))
     AI_SEARCH_QUEUE_WAIT_SECONDS = float(os.environ.get("AI_SEARCH_QUEUE_WAIT_SECONDS", "10"))
     AI_SEARCH_RATE_LIMIT_PER_HOUR = int(os.environ.get("AI_SEARCH_RATE_LIMIT_PER_HOUR", "20"))
@@ -41,6 +41,9 @@ class Config:
     AI_SEARCH_ENCODER_MODEL = os.environ.get("AI_SEARCH_ENCODER_MODEL", MODEL_NAME)
     AI_SEARCH_ENCODER_REVISION = os.environ.get("AI_SEARCH_ENCODER_REVISION", MODEL_REVISION)
     AI_SEARCH_ENCODER_CACHE = os.environ.get("AI_SEARCH_ENCODER_CACHE") or str(INSTANCE_DIR / "fastembed")
+    AI_SEARCH_RERANKER_ENABLED = as_bool(os.environ.get("AI_SEARCH_RERANKER_ENABLED"), True)
+    AI_SEARCH_RERANKER_THREADS = int(os.environ.get("AI_SEARCH_RERANKER_THREADS", "4"))
+    AI_SEARCH_RERANKER_CACHE = os.environ.get("AI_SEARCH_RERANKER_CACHE") or str(INSTANCE_DIR / "reranker")
     APP_HOST = os.environ.get("APP_HOST", "127.0.0.1").strip()
     APP_PORT = int(os.environ.get("APP_PORT", "5000"))
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://127.0.0.1:5173").rstrip("/")
@@ -95,6 +98,8 @@ def validate_runtime_config(app):
             raise RuntimeError("AI_SEARCH_RATE_LIMIT_PER_HOUR debe estar entre 1 y 120.")
         if not (1 <= cfg["AI_SEARCH_EMBEDDING_THREADS"] <= 8):
             raise RuntimeError("AI_SEARCH_EMBEDDING_THREADS debe estar entre 1 y 8.")
+        if not (1 <= cfg["AI_SEARCH_RERANKER_THREADS"] <= 8):
+            raise RuntimeError("AI_SEARCH_RERANKER_THREADS debe estar entre 1 y 8.")
         if cfg["AI_SEARCH_MAX_RESULTS"] > 20 or cfg["AI_SEARCH_DEFAULT_RESULTS"] > cfg["AI_SEARCH_MAX_RESULTS"]:
             raise RuntimeError("El máximo de resultados avanzados es 20 y debe cubrir el valor predeterminado.")
         if not (2 <= cfg["AI_SEARCH_MAX_QUERY_CHARS"] <= 500):

@@ -25,12 +25,21 @@ from .contracts import SearchIntent
 from .documents import hash_search_fields, profile_search_fields
 from .encoder import encode_normalized, get_encoder
 from .model_manifest import MODEL_DIMENSION, MODEL_NAME, MODEL_REVISION
-from .text import contains_phrase, normalize_text, tokens, unique_terms
+from .text import contains_number_variant, contains_phrase, normalize_text, number_forms, tokens, unique_terms
 
 logger = logging.getLogger(__name__)
 RRF_CONSTANT = 60
 LEXICAL_POOL_SIZE = 200
 SEMANTIC_SCORE_LIMIT = 120
+SERVICE_ACTIONS = tuple(value for group in aliases.ACTION_GROUPS.values() for value in group)
+_SERVICE_ACTION_ENDINGS = tuple(" " + normalize_text(action) for action in SERVICE_ACTIONS)
+_ACTION_CLAUSE_SEPARATOR = re.compile(
+    r"\s+(?:y|e|pero|aunque)\s+(?=(?:tambien\s+)?(?:"
+    + "|".join(re.escape(normalize_text(action)) for action in SERVICE_ACTIONS)
+    + r")\b)"
+)
+_OBJECT_FUNCTION_WORDS = aliases.SPANISH_STOP_WORDS | {"mi", "mis", "tu", "tus", "su", "sus"}
+_MANNER_WORDS = {"forma", "manera", "urgencia", "emergencia"}
 
 
 def _remove_known_places(query):
@@ -96,6 +105,32 @@ def deterministic_intent(query):
     )
 
 
+def explicit_profession_intent(query):
+    """Resolve short trade-only requests directly from the profession and place catalogs."""
+    service = re.sub(
+        r"^(?:(?:necesito|busco|quiero|preciso)\s+)?(?:(?:un|una|alg[uú]n|alguna)\s+)?",
+        "", query.strip(" .?!¡¿"), flags=re.IGNORECASE,
+    )
+    parts = re.split(r"\s+en\s+", service, maxsplit=1, flags=re.IGNORECASE)
+    requested = parts[0].strip()
+    location = parts[1].strip() if len(parts) == 2 else None
+    profession = normalize_text(requested)
+    if not profession or (location and not fuzzy_location_suggestions(location, limit=1)):
+        return None
+    known = any(profession in group for group in aliases.PROFESSION_GROUPS.values())
+    if not known:
+        known = db.session.scalar(
+            select(Profile.id).where(Profile.profession_normalized == profession, Profile.status == "active").limit(1)
+        ) is not None
+    if not known:
+        return None
+    return SearchIntent(
+        status="ok", search_text=profession, profession_text=requested.casefold(),
+        action_text=None, object_text=None, location_text=location or None,
+        related_terms=[], excluded_terms=[],
+    )
+
+
 def prepare_intent(intent, query):
     """Apply catalog-based location removal shared by the HTTP route and evaluation CLI."""
     if not intent.location_text:
@@ -106,6 +141,7 @@ def prepare_intent(intent, query):
         for row in [*departments, *localities]
         for word in normalize_text(row.name).split()
     }
+    intent.required_terms = [term for term in intent.required_terms if not set(tokens(term)) <= geo_words]
     intent.search_text = " ".join(word for word in normalize_text(intent.search_text).split() if word not in geo_words)
     if intent.status == "ok" and not intent.search_text:
         intent.search_text = deterministic_intent(query).search_text
@@ -287,6 +323,19 @@ def _has_phrase(text_value, phrases):
     return any(contains_phrase(text_value, phrase) for phrase in phrases if phrase)
 
 
+def _service_clauses(sentence):
+    normalized = normalize_text(sentence)
+    start = 0
+    for separator in _ACTION_CLAUSE_SEPARATOR.finditer(normalized):
+        clause = normalized[start:separator.start()]
+        # A trailing action in "instalo y reparo termofones" shares the next object.
+        if clause.endswith(_SERVICE_ACTION_ENDINGS) or clause in SERVICE_ACTIONS:
+            continue
+        yield clause
+        start = separator.end()
+    yield normalized[start:]
+
+
 def _negates_requested_action(text_value, intent):
     if not intent.action_text:
         return False
@@ -319,7 +368,32 @@ def _negates_requested_action(text_value, intent):
     return False
 
 
-def _evidence_for_profile(profile, document, intent, semantic_entry, threshold):
+def _direct_object_terms(query, object_text, geo):
+    if not object_text:
+        return ()
+    query_words = " ".join(word for word in tokens(query) if word not in _OBJECT_FUNCTION_WORDS)
+    place_words = {
+        word for place in (geo["department"], geo["locality"]) if place for word in tokens(place.name)
+    }
+    for name in aliases.object_aliases(object_text):
+        name_words = [word for word in tokens(name) if word not in _OBJECT_FUNCTION_WORDS]
+        if not contains_number_variant(query_words, " ".join(name_words)):
+            continue
+        words = [r"(?:" + "|".join(re.escape(form) for form in sorted(number_forms(word))) + r")"
+                 for word in tokens(name)]
+        complement = re.search(
+            r"\b" + r"\s+".join(words)
+            + r"\s+(?:de|del)\s+(?:(?:el|la|los|las|un|una|mi|mis|tu|su)\s+)*(\w+)",
+            normalize_text(query),
+        )
+        if complement and complement[1] not in place_words | _MANNER_WORDS:
+            return (complement[1],)
+        return ()
+    # The interpreter may name a broader service. That alone cannot certify the requested object.
+    return None
+
+
+def _evidence_for_profile(profile, document, intent, semantic_entry, threshold, *, direct_object_terms=()):
     fields = {field: getattr(document, field) for field in ("profession", "category", "short_description", "description", "tags")}
     if intent.excluded_terms and any(contains_phrase(" ".join(fields.values()), term) for term in intent.excluded_terms):
         return None
@@ -328,18 +402,24 @@ def _evidence_for_profile(profile, document, intent, semantic_entry, threshold):
 
     object_options = aliases.object_aliases(intent.object_text) if intent.object_text else ()
     action_options = aliases.action_aliases(intent.action_text) if intent.action_text else ()
-    service_actions = tuple(value for group in aliases.ACTION_GROUPS.values() for value in group)
     direct_fields = []
     related_fields = []
     for field, value in fields.items():
         for sentence in _sentences(value):
+            if any(not contains_number_variant(sentence, term) for term in intent.required_terms):
+                continue
             has_object = bool(object_options) and _has_phrase(sentence, object_options)
             has_action = bool(action_options) and _has_phrase(sentence, action_options)
-            if intent.profession_text and field == "profession" and _has_phrase(value, aliases.profession_aliases(intent.profession_text)):
+            if (intent.profession_text and not (intent.action_text or intent.object_text)
+                    and field == "profession" and _has_phrase(value, aliases.profession_aliases(intent.profession_text))):
                 direct_fields.append((field, sentence))
-            if has_object and has_action:
+            if has_object and has_action and direct_object_terms is not None and any(
+                _has_phrase(clause, object_options) and _has_phrase(clause, action_options)
+                and all(contains_number_variant(clause, term) for term in direct_object_terms)
+                for clause in _service_clauses(sentence)
+            ):
                 direct_fields.append((field, sentence))
-            elif has_object and _has_phrase(sentence, service_actions):
+            elif has_object and _has_phrase(sentence, SERVICE_ACTIONS):
                 related_fields.append((field, sentence))
 
     if direct_fields:
@@ -350,7 +430,7 @@ def _evidence_for_profile(profile, document, intent, semantic_entry, threshold):
         return {"sourceField": field, "text": literal[:480], "matchType": "related", "cosine": semantic_entry[0] if semantic_entry else None}
 
     score, chunk = semantic_entry if semantic_entry else (None, None)
-    if chunk and score >= threshold:
+    if chunk and score >= threshold and all(contains_number_variant(chunk.literal_text, term) for term in intent.required_terms):
         anchored = _has_phrase(chunk.literal_text, (*object_options, *intent.related_terms))
         if anchored or score >= min(0.72, threshold + 0.12):
             return {
@@ -462,7 +542,9 @@ def search_profiles(
     profiles = {profile.id: profile for profile in profile_rows}
     documents = {row.profile_id: row for row in db.session.scalars(select(ProfileSearchDocument).where(ProfileSearchDocument.profile_id.in_(ordered))).all()}
     lexical_hashes = dict(lexical)
-    results = []
+    direct_results = []
+    related_results = []
+    direct_object_terms = _direct_object_terms(query, intent.object_text, geo)
     for profile_id in ordered:
         profile = profiles.get(profile_id)
         document = documents.get(profile_id)
@@ -478,17 +560,22 @@ def search_profiles(
         semantic_entry = semantic_by_id.get(profile_id)
         if semantic_entry and semantic_entry[1].source_hash != current_hash:
             semantic_entry = None
-        evidence = _evidence_for_profile(profile, document, intent, semantic_entry, cosine_threshold)
+        evidence = _evidence_for_profile(
+            profile, document, intent, semantic_entry, cosine_threshold, direct_object_terms=direct_object_terms,
+        )
         if not evidence:
             continue
-        profile_payload = serialize_profile(profile)
-        results.append({
-            "profile": profile_payload,
+        bucket = direct_results if evidence["matchType"] == "direct" else related_results
+        if len(bucket) >= limit:
+            continue
+        bucket.append({
+            "profile": serialize_profile(profile),
             "evidence": evidence,
             "locationLabel": _location_label(profile, geo),
         })
-        if len(results) >= limit:
+        if len(direct_results) == limit:
             break
+    results = (direct_results + related_results)[:limit]
 
     elapsed = (time.perf_counter() - started) * 1000
     logger.info(

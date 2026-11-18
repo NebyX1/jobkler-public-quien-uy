@@ -5,8 +5,8 @@ Esta guía permite a una persona o a un agente preparar una instalación local d
 ## 1. Requisitos y archivos externos
 
 - [Git](https://git-scm.com/downloads), [Node.js 22.15.1](https://nodejs.org/en/download/archive/v22.15.1) con npm y [Python 3.11](https://www.python.org/downloads/release/python-3110/). El proyecto acepta Node 22.12 o posterior de la rama 22 y Python 3.11.x; las versiones de referencia probadas son Node 22.15.1 y Python 3.11.0. En Windows, PowerShell 5.1 o superior; en Linux, Bash.
-- Conexión a Internet durante la preparación: se descargan dependencias, el GGUF, el ejecutable de llama.cpp y el encoder ONNX fijado. El primer inicio puede tardar varios minutos.
-- Espacio para el modelo GGUF de 1,27 GB, el encoder de aproximadamente 267 MB y las dependencias. La memoria y el tiempo de inferencia dependen del equipo; el modo predeterminado usa CPU.
+- Conexión a Internet durante la preparación para descargar dependencias, el GGUF, llama.cpp, el encoder y el reranker ONNX. El primer inicio puede tardar varios minutos.
+- Espacio para el GGUF de 1,27 GB, el encoder de aproximadamente 267 MB, el reranker con su tokenizer de unos 136 MB y las dependencias. El modo predeterminado usa CPU.
 - Puertos locales libres: **5173** para Vite, **5000** para Flask y **8081** para Qwen.
 
 El repositorio **no incluye** los pesos, los ejecutables de llama.cpp, `.env`, `node_modules`, el entorno virtual, la SQLite ni los logs. No hay que copiar secretos de otra máquina: el primer inicio crea claves locales nuevas cuando faltan.
@@ -25,6 +25,8 @@ cd jobkler-public-quien-uy
 | `ai-engine/bin/llama-server` y sus bibliotecas | Servidor nativo para Linux x64 | Paquete `b11052` abajo |
 
 El encoder [Qdrant MiniLM ONNX](https://huggingface.co/Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q/tree/faf4aa4225822f3bc6376869cb1164e8e3feedd0) se descarga durante el arranque, en la revisión fijada `faf4aa4225822f3bc6376869cb1164e8e3feedd0`. Es independiente de Qwen y queda en `backend/instance/fastembed/`.
+
+El reranker [mMARCO MiniLM ONNX cuantizado](https://huggingface.co/cross-encoder/mmarco-mMiniLMv2-L12-H384-v1/tree/1427fd652930e4ba29e8149678df786c240d8825/onnx) se prepara en `backend/instance/reranker/` y verifica ambos archivos por SHA-256. Si falla su preparación, el arranque continúa. Para reparar la caché, ejecutá desde `backend/` el comando `python -m flask --app wsgi:app search-reranker-prepare` con el entorno virtual activo.
 
 ## 2. Preparación en Windows x64
 

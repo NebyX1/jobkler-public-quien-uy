@@ -12,13 +12,14 @@ flowchart LR
     Flask -->|"perfiles, sesiones y FTS5"| DB[("SQLite local")]
     Flask -->|"vectorizar consulta"| Embed["FastEmbed / MiniLM ONNX"]
     Embed -->|"vector de consulta"| Flask
+    Flask -->|"ordenar candidatos relacionados"| Rerank["mMARCO MiniLM ONNX"]
     Worker["Worker de indexación"] -->|"trabajos y vectores"| DB
     Worker -->|"vectorizar fragmentos"| Embed
 ```
 
 - Vite sirve la interfaz y redirige `/api` a Flask con el mismo origen del navegador. El navegador no llama a Qwen ni recibe su clave.
 - Flask administra perfiles, reseñas, catálogos, sesiones y búsqueda. La fuente canónica es SQLite en `backend/instance/`; los contactos no se incluyen en los documentos de búsqueda.
-- Qwen interpreta cada solicitud mediante un objeto JSON validado. El encoder MiniLM es otro modelo: calcula vectores para recuperar texto relacionado; Qwen no recorre directamente la base de datos.
+- El catálogo resuelve pedidos simples de un oficio conocido. Qwen interpreta los demás mediante un objeto JSON validado. El encoder MiniLM calcula vectores para recuperar perfiles relacionados.
 - El worker actualiza los fragmentos vectorizados fuera de la transacción que guarda el perfil. Los documentos FTS se sincronizan al escribir y se vuelven a comprobar por hash antes de mostrar resultados. FastEmbed es una biblioteca cargada por los procesos que la usan, no un servidor independiente.
 - Los procesos se ejecutan en loopback. El modelo GGUF, el ejecutable de llama.cpp, el caché ONNX, los secretos, logs y la base no se versionan en Git.
 
@@ -29,7 +30,7 @@ flowchart TD
     Inicio["run.ps1 / run.sh"] --> Config["Validar configuración y preparar claves"]
     Config --> Puertos["Comprobar puertos y dependencias"]
     Puertos --> Migrar["Migrar SQLite y aplicar semillas"]
-    Migrar --> Indice["Sincronizar FTS y preparar encoder"]
+    Migrar --> Indice["Sincronizar FTS y preparar encoder y reranker"]
     Indice --> Motor["Iniciar y comprobar Qwen autenticado"]
     Motor --> API["Iniciar Flask y comprobar readiness"]
     API --> Worker["Iniciar worker de embeddings si el encoder está listo"]
@@ -83,6 +84,7 @@ sequenceDiagram
     participant LLM as Qwen local
     participant Texto as SQLite FTS5
     participant Vec as MiniLM + vectores
+    participant Rerank as Reranker ONNX
     Persona->>Web: Envía un mensaje en el chat
     Web->>API: POST /api/search/advanced con sesión, CSRF y Accept NDJSON
     API->>API: Valida entrada, sesión y límite
@@ -102,7 +104,17 @@ sequenceDiagram
         API->>Vec: Vectoriza consulta y compara fragmentos vigentes
         Vec-->>API: Ranking semántico
         API->>API: Combina rankings y selecciona evidencia
-        API-->>Web: Resultado con zona aplicada y perfiles
+        opt Sin coincidencias directas
+            opt Sin citas candidatas válidas
+                API->>LLM: Solicita una familia de servicios que abarque el pedido
+                API->>Vec: Recupera perfiles con la reformulación
+            end
+            API->>Rerank: Ordena candidatos ampliados con el pedido original
+            API->>LLM: Verifica citas literales de los primeros candidatos
+            LLM-->>API: Referencias a citas aceptadas
+            API->>API: Revalida perfil y cobertura de cada sugerencia
+        end
+        API-->>Web: Resultado con zona aplicada y perfiles o sugerencias
     else Hace falta aclarar la ubicación
         API-->>Web: Resultado con opciones cuando existen
     end
@@ -128,7 +140,7 @@ flowchart LR
     Verificar --> Resultado["Resultado con evidencia"]
 ```
 
-La semilla inicial crea 42 perfiles demo, nueve fixtures de búsqueda y 300 perfiles ampliados. En una base nueva hay 351 registros, de los cuales 346 comienzan activos. Son ficticios, sin datos de contacto reales; los cambios posteriores se conservan. La semilla ampliada se aplica una sola vez y no repone perfiles que luego se borren.
+La semilla inicial crea 42 perfiles demo, nueve fixtures de búsqueda, 300 perfiles ampliados y 43 perfiles con tareas detalladas. En una base nueva hay 394 registros, de los cuales 388 comienzan activos. Los datos son ficticios y las semillas de población se aplican una vez.
 
 ## Ubicación del código
 

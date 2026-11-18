@@ -1,4 +1,5 @@
 import json
+from time import perf_counter
 from uuid import uuid4
 
 from flask import Blueprint, Response, current_app, jsonify, request, stream_with_context
@@ -9,10 +10,16 @@ from app.extensions import db
 from app.services.sessions import require_csrf, current_account
 
 from .jobkler import serialize_profile, api_error
-from app.search.catalog import resolve_filters
+from app.search.catalog import eligible_profile_ids, resolve_filters
 from app.search.contracts import AdvancedSearchRequest
-from app.search.engine import reserve_account_request, search_profiles, deterministic_intent, profession_spelling_options, prepare_intent
-from app.search.llm import InferenceBusy, InferenceUnavailable, extract_intent
+from app.search.engine import (
+    deterministic_intent, explicit_profession_intent, prepare_intent, profession_spelling_options,
+    reserve_account_request, search_profiles,
+)
+from app.search.llm import (
+    InferenceBusy, InferenceUnavailable, extract_intent, propose_related_services, verify_related_evidence,
+)
+from app.search.related import publish_suggestions, related_candidates
 
 advanced_search_bp = Blueprint("advanced_search_api", __name__, url_prefix="/search")
 PROGRESS_TYPE = "application/x-ndjson"
@@ -75,15 +82,17 @@ def _search_events(payload):
     yield {"type": "stage", "stage": "interpretation"}
     degradation = []
     try:
-        intent = extract_intent(
-            payload.query,
-            base_url=current_app.config["AI_LLM_BASE_URL"],
-            model=current_app.config["AI_LLM_MODEL"],
-            api_key=current_app.config["AI_LLM_API_KEY"],
-            timeout_seconds=current_app.config["AI_SEARCH_TIMEOUT_SECONDS"],
-            connect_timeout_seconds=current_app.config["AI_SEARCH_CONNECT_TIMEOUT_SECONDS"],
-            queue_wait_seconds=current_app.config["AI_SEARCH_QUEUE_WAIT_SECONDS"],
-        )
+        intent = explicit_profession_intent(payload.query)
+        if intent is None:
+            intent = extract_intent(
+                payload.query,
+                base_url=current_app.config["AI_LLM_BASE_URL"],
+                model=current_app.config["AI_LLM_MODEL"],
+                api_key=current_app.config["AI_LLM_API_KEY"],
+                timeout_seconds=current_app.config["AI_SEARCH_TIMEOUT_SECONDS"],
+                connect_timeout_seconds=current_app.config["AI_SEARCH_CONNECT_TIMEOUT_SECONDS"],
+                queue_wait_seconds=current_app.config["AI_SEARCH_QUEUE_WAIT_SECONDS"],
+            )
     except InferenceBusy:
         yield _result(_response("busy", "El motor local está ocupado; esperá un momento y reenviá la búsqueda.", code="inference_busy"), 503)
         return
@@ -128,8 +137,71 @@ def _search_events(payload):
         config=current_app.config,
         serialize_profile=serialize_profile,
     )
+    if (not degradation and result["status"] in {"ok", "empty"} and not geography[1]
+            and current_app.config["AI_SEARCH_RERANKER_ENABLED"]
+            and current_app.config["AI_SEARCH_SEMANTIC_ENABLED"]):
+        direct = [match for match in result["results"] if match["evidence"]["matchType"] == "direct"]
+        if direct:
+            result["results"] = direct
+        else:
+            _search_related(result, intent, payload, geography[0])
     if degradation and result["status"] in {"ok", "empty"}:
         result["status"] = "degraded"
         result["degradation"] = degradation + result.get("degradation", [])
         result["message"] += " La interpretación local no respondió y se usó una búsqueda determinista."
     yield _result(result)
+
+
+def _search_related(result, intent, payload, geo):
+    started = perf_counter()
+    config = current_app.config
+    connection = {
+        "base_url": config["AI_LLM_BASE_URL"], "model": config["AI_LLM_MODEL"],
+        "api_key": config["AI_LLM_API_KEY"],
+        "connect_timeout_seconds": config["AI_SEARCH_CONNECT_TIMEOUT_SECONDS"],
+        "queue_wait_seconds": config["AI_SEARCH_QUEUE_WAIT_SECONDS"],
+    }
+    stage = "retrieval"
+    try:
+        candidates = related_candidates(intent, query=payload.query, geo=geo, config=config)
+        if (not candidates and (intent.action_text or intent.object_text or not intent.profession_text)
+                and eligible_profile_ids(geo, intent.profession_text)):
+            stage = "service_plan"
+            services = propose_related_services(payload.query, **connection)
+            if services:
+                expanded = intent.model_copy(update={"related_services": services})
+                stage = "expanded_retrieval"
+                candidates = related_candidates(
+                    expanded, query=payload.query, geo=geo, config=config, allow_semantic=True,
+                )
+        if candidates:
+            stage = "verification"
+            accepted = verify_related_evidence(
+                payload.query, [candidate.verification_text for candidate in candidates], **connection,
+            )
+            suggestions = publish_suggestions(
+                candidates, accepted, intent=intent, geo=geo, serialize_profile=serialize_profile,
+                limit=min(payload.limit, config["AI_SEARCH_MAX_RESULTS"]),
+            )
+            if suggestions:
+                result.update(
+                    status="ok", results=[], suggestions=suggestions,
+                    message="No encontré una coincidencia exacta. Estos perfiles podrían ayudarte.",
+                )
+                return
+        result.update(status="empty", results=[], message="No encontré coincidencias suficientes entre los perfiles activos.")
+    except Exception as exc:
+        current_app.logger.warning(
+            "advanced_search_related_failed request_id=%s stage=%s error=%s cause=%s",
+            result["request_id"], stage, type(exc).__name__, type(exc.__cause__ or exc).__name__,
+        )
+        result.update(
+            status="degraded", results=[],
+            message="La verificación de sugerencias relacionadas no está disponible.",
+        )
+        result["degradation"].append(result["message"])
+    finally:
+        current_app.logger.info(
+            "advanced_search_related request_id=%s suggestions=%d total_ms=%.1f",
+            result["request_id"], len(result.get("suggestions", [])), (perf_counter() - started) * 1000,
+        )

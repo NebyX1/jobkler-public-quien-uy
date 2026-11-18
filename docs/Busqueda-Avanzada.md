@@ -2,11 +2,15 @@
 
 ## Recorrido
 
-El chat en `/buscar/avanzada` envía cada mensaje a `POST /api/search/advanced`. Flask exige sesión de Jobkler y CSRF antes de usar Qwen. Cada consulta se interpreta con una llamada a la API local de llama.cpp y Pydantic valida la respuesta. Si Qwen no responde o entrega JSON inválido, se usa el extractor determinista y la respuesta indica que la búsqueda funcionó en modo reducido.
+El chat en `/buscar/avanzada` envía cada mensaje a `POST /api/search/advanced`. Flask exige sesión de Jobkler y CSRF. Los pedidos simples de un oficio conocido se resuelven directamente con el catálogo. Para los demás, una llamada local a Qwen interpreta la consulta y puede proponer hasta dos servicios relacionados en lenguaje libre. Pydantic valida la respuesta. Si Qwen no responde o entrega JSON inválido, se usa el extractor determinista y la interfaz indica que la búsqueda funcionó en modo reducido.
 
 El chat solicita `Accept: application/x-ndjson` para recibir las etapas `interpretation`, `location` y `retrieval` a medida que empieza cada una. Un evento final `result` trae la respuesta y el código de estado de la búsqueda. Los clientes que solicitan JSON reciben la respuesta completa al finalizar. Los errores de sesión y validación conservan su código HTTP y formato JSON.
 
-La recuperación aplica primero los filtros de profesión, localidad y cobertura declarada a ambas ramas. SQLite FTS5 consulta el documento completo de perfil y ordena con BM25. En paralelo, NumPy puntúa contra los fragmentos vigentes de todos los perfiles geográficamente elegibles; esa rama no depende de que FTS encuentre candidatos. Los rankings se combinan con Reciprocal Rank Fusion, `k=60`. Finalmente, SQL vuelve a comprobar publicación y hash y solo entonces arma tarjetas con evidencia literal del perfil actual.
+La recuperación aplica filtros de profesión, localidad y cobertura declarada. SQLite FTS5 consulta el documento completo y ordena con BM25. NumPy puntúa los fragmentos vigentes de los perfiles elegibles. Los rankings se combinan con Reciprocal Rank Fusion, `k=60`. Después de comprobar publicación y hash, las coincidencias con evidencia directa van primero.
+
+Si faltan coincidencias directas, se recuperan hasta 25 candidatos usando la consulta original y las reformulaciones de Qwen. Si esos candidatos carecen de evidencia, Qwen tiene una oportunidad de proponer una familia de servicios más amplia en lenguaje libre. Cada cita necesita términos del objeto o del servicio y debe respetar las restricciones explícitas, como material o subtipo. mMARCO MiniLM ONNX cuantizado reordena los fragmentos con la consulta original. Qwen comprueba hasta cinco citas breves, con los límites declarados por cada perfil, y selecciona hasta tres. Antes de publicar cada sugerencia se vuelven a verificar el perfil, la cita y la cobertura. El contrato añade `suggestions` con la cita y su explicación. La interfaz presenta estas opciones e informa si la verificación falla.
+
+Una coincidencia directa de una tarea exige que el objeto de la evidencia corresponda al pedido original. Si la interpretación menciona un servicio más amplio, la API verifica sus citas en la búsqueda de sugerencias. Cuando la reformulación carece de coincidencias textuales, también pueden llegar a la verificación los primeros vecinos semánticos del pedido y de esa reformulación. La compatibilidad de esos perfiles se evalúa con el texto original y los límites declarados.
 
 La búsqueda común sigue siendo pública y mantiene su ruta existente. La avanzada no manda la consulta ni credenciales directamente al navegador hacia llama.cpp.
 
@@ -21,7 +25,9 @@ La búsqueda común sigue siendo pública y mantiene su ruta existente. La avanz
 
 El encoder CPU es `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`, artefacto ONNX de Qdrant, revisión `faf4aa4225822f3bc6376869cb1164e8e3feedd0`, FastEmbed `0.6.1`, 384 dimensiones y hasta 128 tokens. El manifiesto de descarga registra SHA-256. El cache vive bajo `backend/instance/fastembed/` y Git lo ignora. El procesamiento reserva tokens especiales, genera ventanas solapadas y conserva posiciones literales, incluso al final de biografías largas.
 
-Qwen se configura con `AI_LLM_BASE_URL` y el alias real visible en `/v1/models`. Si el servidor exige autenticación, configurá también `AI_LLM_API_KEY` en `backend/.env` con la misma clave que usa el servidor; el backend la envía como Bearer y nunca al navegador. La llamada usa JSON Schema, `stream=false`, hasta 256 tokens y pensamiento desactivado. El límite inicial de inferencia es 20 s y la conexión se limita a 2 s. Si otra consulta está usando el modelo, se espera hasta 10 s por defecto antes de informar que está ocupado; ese tiempo se puede ajustar con `AI_SEARCH_QUEUE_WAIT_SECONDS`. Un semáforo protege una única instancia del servidor Flask; esta primera versión debe ejecutarse como un proceso Flask, además del worker de embeddings.
+El reranker usa `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`, revisión `1427fd652930e4ba29e8149678df786c240d8825`, variante AVX2 cuantizada. `AI_SEARCH_RERANKER_ENABLED` permite activar la segunda búsqueda, `AI_SEARCH_RERANKER_THREADS` ajusta los hilos (4 por defecto) y `AI_SEARCH_RERANKER_CACHE` permite elegir la ruta. El caché predeterminado está en `backend/instance/reranker/`. Se prepara en el arranque y las búsquedas lo cargan localmente.
+
+Qwen se configura con `AI_LLM_BASE_URL` y el alias visible en `/v1/models`. Para autenticación, usá la misma `AI_LLM_API_KEY` que el servidor en `backend/.env`. Las llamadas usan JSON Schema y pensamiento desactivado. La interpretación admite hasta 320 tokens de salida y 40 s por defecto. La verificación admite hasta 48 tokens y 40 s. La conexión se limita a 2 s. `AI_SEARCH_QUEUE_WAIT_SECONDS` controla la espera por el turno de inferencia, de 10 s por defecto. El semáforo se comparte dentro de un proceso Flask.
 
 ## Interfaz y evidencia
 
@@ -49,24 +55,31 @@ Linux:
 
 Los scripts revisan puertos sin terminar procesos ajenos, migran solo `sqlite:///jobkler-demo.sqlite3`, agregan los fixtures de búsqueda faltantes por ID, reconstruyen FTS y preparan el encoder. Con la configuración predeterminada también inician el servidor de `ai-engine/`, verifican su modelo y arrancan Flask, Vite y el worker de embeddings. La guía de archivos, claves y uso del motor está en [ai-engine/README.md](../ai-engine/README.md).
 
-La semilla ampliada agrega 300 perfiles ficticios en las diez categorías y los 19 departamentos; 210 declaran trabajos adicionales únicamente en la descripción. Por ejemplo, se pueden buscar instalación de aire acondicionado, reparación de termofones, fotografía de productos o cuidado de mascotas, aun cuando el perfil tenga otra actividad principal. Se aplica una sola vez y no restaura perfiles editados o borrados.
+La semilla ampliada agrega 300 perfiles ficticios en las diez categorías y los 19 departamentos. De ellos, 210 declaran trabajos adicionales en la descripción. La semilla detallada agrega 43 perfiles con tareas, cobertura y límites concretos. Incluye talleres separados para Minas, Solís de Mataojo y Balneario Solís. Ambas semillas se aplican una vez y conservan las ediciones posteriores.
 
 Comandos útiles desde `backend/`:
 
 ```bash
 python -m flask --app wsgi:app search-model-check
 python -m flask --app wsgi:app search-model-prepare
+python -m flask --app wsgi:app search-reranker-prepare
 python -m flask --app wsgi:app seed-search-fixtures
 python -m flask --app wsgi:app seed-expanded-profiles
+python -m flask --app wsgi:app seed-rich-search-profiles
 python -m flask --app wsgi:app search-rebuild
 python -m flask --app wsgi:app search-index-status
 python -m flask --app wsgi:app search-worker
 python -m flask --app wsgi:app search-check-llm
 python -m flask --app wsgi:app search-evaluate --set calibration
 python -m flask --app wsgi:app search-evaluate --set evaluation
+python -m flask --app wsgi:app search-evaluate-related --case pata-de-cama-nacional --check-corpus
+python -m flask --app wsgi:app search-evaluate-related --split heldout --strict
+python -m flask --app wsgi:app search-evaluate-related --split fresh --strict
 ```
 
 `search-evaluate` requiere Qwen y el corpus vectorial completo. Para cada consulta etiquetada hace una sola petición de extracción, compara top 5 híbrido, texto-only y el buscador público, y escribe JSON bajo `backend/instance/evaluation/`. Reporta Recall@5 macro, Hit@5, precisión de cero resultados, perfiles etiquetados como prohibidos, exactitud de estado, latencias por fase, condiciones de caché y memoria del proceso CLI. En `calibration` barre umbrales 0.45–0.70 y recomienda el que maximiza la media armónica entre Recall@5 macro y especificidad sobre perfiles explícitamente prohibidos, con desempates documentados; no modifica `.env`. `evaluation` mide el umbral configurado y no se usa para ajustarlo. `qwen_plus_hybrid` mide Qwen, la vectorización de la consulta y recuperación dentro del servicio; no incluye latencia del navegador ni la capa HTTP de Flask.
+
+`search-evaluate-related` usa los modelos reales y las consultas de `backend/evaluation/reranker-search.json`. `--split heldout` selecciona ocho consultas distintas del caso de la cama y `--split fresh` selecciona cuatro casos definidos aparte para una segunda evaluación. Los casos con `absent_target_terms` auditan los campos indexados de todos los perfiles activos y elegibles. Si aparece el objeto, el caso falla antes de invocar al modelo. `--check-corpus` ejecuta solo la auditoría. El informe JSON guarda las citas devueltas, los resultados y la latencia en `backend/instance/evaluation/`. `--strict` devuelve un error si alguna consulta incumple su expectativa. Esperá a que termine el indexador antes de ejecutar la evaluación con modelos.
 
 Los tests simulados se ejecutan con:
 

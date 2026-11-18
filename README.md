@@ -53,9 +53,9 @@ El segundo inicio normal conserva perfiles, reseñas, cambios y configuración. 
 
 ## Datos de demostración
 
-Los perfiles ficticios incluyen 42 prestadores iniciales, 9 fixtures de búsqueda y 300 perfiles ampliados distribuidos en las diez categorías y los 19 departamentos. De los perfiles ampliados, 210 mencionan trabajos adicionales solo en su descripción, para probar búsquedas de experiencia fuera del oficio principal. Los valores de perfiles y reseñas son persistentes; los promedios y contadores se calculan desde las reseñas publicadas. Los contactos de la semilla se dejan vacíos y las fotos usan iniciales locales, por lo que no se inicia ninguna comunicación real.
+Los perfiles ficticios incluyen 42 prestadores iniciales, 9 fixtures de búsqueda, 300 perfiles ampliados y 43 perfiles con tareas y cobertura detalladas. De los 300 perfiles ampliados, 210 mencionan trabajos adicionales solo en su descripción. Los valores de perfiles y reseñas son persistentes. Los contactos de la semilla quedan vacíos y las fotos usan iniciales locales.
 
-Las semillas base y ampliada se aplican una vez y no restauran perfiles que se eliminen después. Los nueve fixtures de búsqueda son distintos: el arranque vuelve a crear los que falten por ID. El reset explícito elimina la base completa de demo y la reconstruye mediante Alembic; los fixtures y la población ampliada se agregan al siguiente arranque normal.
+Las semillas base, ampliada y de perfiles detallados se aplican una vez. Los nueve fixtures de búsqueda se recuperan por ID al iniciar si faltan. El catálogo incorpora entradas nuevas durante el arranque. Tras un reset explícito, las semillas complementarias se agregan al siguiente arranque normal.
 
 ## API y base de datos
 
@@ -84,6 +84,6 @@ El servidor usa Authorization Code + PKCE, state firmado, validación de firma/i
 
 ## Búsqueda avanzada local
 
-La búsqueda común es pública y textual. La búsqueda avanzada requiere sesión y usa Qwen3.5-2B local para interpretar la consulta; combina búsqueda textual en SQLite con un encoder semántico ONNX separado. Si Qwen falla después del arranque, la búsqueda puede continuar en modo reducido y lo indica en la interfaz. Las instrucciones y la configuración del motor están en [ai-engine/README.md](ai-engine/README.md); el funcionamiento de la búsqueda se describe en [docs/Busqueda-Avanzada.md](docs/Busqueda-Avanzada.md).
+La búsqueda común es pública y textual. La avanzada requiere sesión, usa Qwen3.5-2B local para interpretar la consulta y combina SQLite con un encoder semántico ONNX. Cuando faltan coincidencias directas, un reranker ONNX ordena candidatos y Qwen verifica sus citas antes de ofrecer sugerencias. La interfaz avisa cuando la búsqueda funciona en modo reducido. Consultá las guías del [motor local](ai-engine/README.md) y [búsqueda avanzada](docs/Busqueda-Avanzada.md).
 
 La verificación descrita es local para Windows con Python 3.11 y Node 22.15.1; no es una validación productiva ni un despliegue.

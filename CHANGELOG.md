@@ -2,6 +2,12 @@
 
 ## 2026-11-18
 
+- La búsqueda avanzada prioriza coincidencias directas. Cuando faltan, amplía candidatos con la consulta original y reformulaciones de Qwen, usa mMARCO ONNX y verifica citas antes de mostrar hasta tres sugerencias.
+- Se agregaron 43 perfiles ficticios con tareas detalladas y controles de exclusión, cobertura e inactividad. «Solís» ofrece Balneario Solís y Solís de Mataojo. Los títulos de mecánica automotor y automotriz coinciden con «mecánico».
+- Se incorporaron pruebas del reranker, la semilla y la API, y 36 consultas etiquetadas para evaluar el recorrido con modelos reales.
+- Se reemplazaron siete descripciones ficticias que anticipaban el caso de la cama por descripciones de habilidades generales. La instalación actualiza únicamente las fichas originales de esa semilla.
+- La búsqueda puede reformular un pedido en términos de una familia de servicios. La evaluación comprueba la ausencia del objeto en el índice antes de medir casos de generalización.
+
 - La búsqueda avanzada usa una interfaz de chat con historial temporal, ejemplos y etapas de progreso que llegan desde Flask.
 - El chat aplica la ubicación reconocida en el mensaje, muestra la zona en los resultados y ofrece acciones para confirmar un lugar dudoso o ampliar la búsqueda a todo Uruguay.
 

@@ -18,6 +18,27 @@ def contains_phrase(haystack, phrase):
     return bool(target) and f" {target} " in source
 
 
+def number_forms(word):
+    """Simple singular/plural alternatives for checking literal evidence."""
+    forms = {word}
+    if len(word) > 4 and word.endswith("s"):
+        forms.add(word[:-1])
+    if len(word) > 5 and word.endswith("es"):
+        forms.add(word[:-2])
+    return forms
+
+
+def contains_number_variant(haystack, phrase):
+    if contains_phrase(haystack, phrase):
+        return True
+    source = [number_forms(word) for word in tokens(haystack)]
+    target = [number_forms(word) for word in tokens(phrase)]
+    return bool(target) and any(
+        all(available & wanted for available, wanted in zip(source[start:], target))
+        for start in range(len(source) - len(target) + 1)
+    )
+
+
 def unique_terms(values, limit=24):
     output = []
     seen = set()

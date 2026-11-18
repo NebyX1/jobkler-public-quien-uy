@@ -22,6 +22,10 @@ export interface AdvancedSearchResult {
   locationLabel: string;
 }
 
+export interface AdvancedSearchSuggestion extends AdvancedSearchResult {
+  reason: string;
+}
+
 export interface SearchClarificationOption {
   kind: 'department' | 'locality' | 'profession';
   id?: string;
@@ -50,6 +54,7 @@ export interface AdvancedSearchResponse {
   };
   degradation?: string[];
   results: AdvancedSearchResult[];
+  suggestions?: AdvancedSearchSuggestion[];
 }
 
 export type SearchProgressStage = 'interpretation' | 'location' | 'retrieval';
@@ -78,7 +83,8 @@ function readResult(value: unknown, status: number): AdvancedSearchResponse {
       ? message
       : 'No pude completar la búsqueda. Probá de nuevo.');
   }
-  if (typeof data?.status !== 'string' || typeof data.message !== 'string' || !Array.isArray(data.results)) {
+  if (typeof data?.status !== 'string' || typeof data.message !== 'string' || !Array.isArray(data.results)
+    || (data.suggestions !== undefined && !Array.isArray(data.suggestions))) {
     throw new Error('Recibí una respuesta incompleta. Probá de nuevo.');
   }
   return value as AdvancedSearchResponse;

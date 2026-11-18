@@ -559,6 +559,15 @@
       "sortOrder": 5
     },
     {
+      "id": "balneario-solis",
+      "name": "Balneario Solís",
+      "slug": "balneario-solis",
+      "department": "Maldonado",
+      "departmentId": "maldonado",
+      "featured": false,
+      "sortOrder": 6
+    },
+    {
       "id": "montevideo",
       "name": "Montevideo",
       "slug": "montevideo",

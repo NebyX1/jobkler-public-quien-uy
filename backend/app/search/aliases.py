@@ -1,6 +1,6 @@
 """Small, reviewed Uruguayan Spanish retrieval vocabulary; versioned in source."""
 
-ALIAS_VERSION = "uy-service-terms-v1"
+ALIAS_VERSION = "uy-service-terms-v2"
 
 OBJECT_GROUPS = {
     "termofon": ("termofon", "termofones", "calefon", "calefones", "calentador de agua", "calentadores de agua"),
@@ -10,16 +10,24 @@ OBJECT_GROUPS = {
 
 ACTION_GROUPS = {
     "reparar": (
-        "reparar", "reparo", "repara", "reparan", "repare", "reparacion", "arreglar", "arreglo",
-        "arregla", "arreglan", "arregle", "solucionar", "soluciona", "componer",
+        "reparar", "reparo", "repara", "reparan", "repare", "reparacion", "reparado",
+        "arreglar", "arreglo", "arregla", "arreglan", "arregle", "arreglado",
+        "solucionar", "soluciona", "componer",
     ),
-    "instalar": ("instalar", "instalo", "instala", "instalan", "colocar", "coloco", "coloca", "montar", "monto", "monta"),
+    "instalar": (
+        "instalar", "instalo", "instala", "instalan", "instale", "instalacion", "instalado",
+        "colocar", "coloco", "coloca", "colocacion", "montar", "monto", "monta", "montaje",
+    ),
     "fabricar": ("fabricar", "fabrico", "fabrica", "hacer", "hago", "construir", "construyo"),
 }
 
 PROFESSION_GROUPS = {
     "carpintero": ("carpintero", "carpintera", "carpinteria", "ebanista"),
     "electricista": ("electricista", "electricistas"),
+    "mecanico": (
+        "mecanico", "mecanica", "mecanicos", "mecanicas", "mecanico automotor",
+        "mecanica automotriz", "mecanica automotor", "mecanico automotriz",
+    ),
     "sanitario": ("sanitario", "sanitaria", "fontanero", "fontanera", "plomero", "plomera"),
 }
 

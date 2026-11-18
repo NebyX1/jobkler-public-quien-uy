@@ -160,10 +160,14 @@ export VITE_PORT="$WEB_PORT"
 (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app seed-jobkler)
 (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app seed-search-fixtures)
 (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app seed-expanded-profiles)
+(cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app seed-rich-search-profiles)
 (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app search-rebuild)
 MODEL_READY=0
 if (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app search-model-prepare); then
   MODEL_READY=1
+  if ! (cd "$BACKEND_DIR" && "$VENV_PYTHON" -m flask --app wsgi:app search-reranker-prepare); then
+    echo 'El reranker no está listo; la búsqueda principal seguirá disponible.' >&2
+  fi
 else
   echo 'El encoder no está listo; la búsqueda avanzada seguirá disponible por texto y mostrará su modo reducido.' >&2
 fi

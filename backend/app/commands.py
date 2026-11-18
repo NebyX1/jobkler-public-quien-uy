@@ -90,6 +90,21 @@ def seed_expanded_profiles_command():
         click.echo(f"Perfiles ficticios ampliados: {result['profiles']} nuevos; {result['with_extra']} con trabajos adicionales en su descripción.")
 
 
+@click.command("seed-rich-search-profiles")
+@with_appcontext
+def seed_rich_search_profiles_command():
+    """Add the task-rich fictional search profiles once."""
+    require_local_search_database()
+    from app.search.rich_fixtures import seed_rich_search_profiles
+    result = seed_rich_search_profiles()
+    if result.get("updated"):
+        click.echo(f"Perfiles detallados de búsqueda: {result['updated']} fichas de la semilla corregidas.")
+    elif result["skipped"]:
+        click.echo("Perfiles detallados de búsqueda: sin cambios (ya inicializados).")
+    else:
+        click.echo(f"Perfiles detallados de búsqueda: {result['profiles']} nuevos; {result['active']} activos.")
+
+
 @click.command("search-rebuild")
 @click.option("--force", is_flag=True, help="Descarta embeddings y vuelve a encolar todas las revisiones activas.")
 @with_appcontext
@@ -116,6 +131,24 @@ def search_model_prepare_command():
     click.echo(f"Encoder listo: {metadata['repository']}@{metadata['revision']}")
     click.echo(f"ONNX SHA-256: {metadata['sha256']}")
     click.echo(f"Caché: {path}")
+
+
+@click.command("search-reranker-prepare")
+@with_appcontext
+def search_reranker_prepare_command():
+    """Prepare the pinned cross-encoder outside the HTTP request path."""
+    require_local_search_database()
+    cfg = current_app.config
+    if not (cfg["AI_SEARCH_ENABLED"] and cfg["AI_SEARCH_SEMANTIC_ENABLED"] and cfg["AI_SEARCH_RERANKER_ENABLED"]):
+        click.echo("Reranker desactivado por configuración.")
+        return
+
+    from app.search.reranker import prepare_reranker
+    try:
+        path = prepare_reranker(cfg)
+    except Exception as exc:
+        raise click.ClickException(f"No se pudo preparar el reranker local ({type(exc).__name__}).") from exc
+    click.echo(f"Reranker local preparado: {path}")
 
 
 @click.command("search-model-check")
@@ -525,18 +558,23 @@ def search_evaluate_command(split):
 
 
 def register_commands(app):
+    from app.search.quality_evaluation import quality_evaluate_command
+
     app.cli.add_command(seed_jobkler_command)
     app.cli.add_command(reset_demo_command)
     for command in (
         seed_search_fixtures_command,
         seed_expanded_profiles_command,
+        seed_rich_search_profiles_command,
         search_rebuild_command,
         search_model_prepare_command,
+        search_reranker_prepare_command,
         search_model_check_command,
         search_index_once_command,
         search_index_status_command,
         search_check_llm_command,
         search_worker_command,
         search_evaluate_command,
+        quality_evaluate_command,
     ):
         app.cli.add_command(command)

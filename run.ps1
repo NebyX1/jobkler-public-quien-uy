@@ -135,11 +135,17 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'No se pudieron inicializar los fixtures sintéticos de búsqueda.' }
     & $VenvPython -m flask --app wsgi:app seed-expanded-profiles
     if ($LASTEXITCODE -ne 0) { throw 'No se pudieron inicializar los perfiles ficticios ampliados.' }
+    & $VenvPython -m flask --app wsgi:app seed-rich-search-profiles
+    if ($LASTEXITCODE -ne 0) { throw 'No se pudieron inicializar los perfiles detallados de búsqueda.' }
     & $VenvPython -m flask --app wsgi:app search-rebuild
     if ($LASTEXITCODE -ne 0) { throw 'No se pudieron sincronizar los documentos locales de búsqueda.' }
     & $VenvPython -m flask --app wsgi:app search-model-prepare
     $modelReady = $LASTEXITCODE -eq 0
     if (!$modelReady) { Write-Warning 'El encoder no está listo; la búsqueda avanzada seguirá disponible por texto y mostrará su modo reducido.' }
+    if ($modelReady) {
+        & $VenvPython -m flask --app wsgi:app search-reranker-prepare
+        if ($LASTEXITCODE -ne 0) { Write-Warning 'El reranker no está listo; la búsqueda principal seguirá disponible.' }
+    }
     $engineOutput = @(& $SystemPython $EngineScript start)
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar el motor local; revisá el diagnóstico anterior.' }
     $engineState = ($engineOutput -join "`n") | ConvertFrom-Json
