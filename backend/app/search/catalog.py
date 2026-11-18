@@ -38,11 +38,6 @@ def resolve_coverage_values(profile_id, service_area):
                 seen.add(key)
 
 
-def _normal_matches(value, name, slug, identifier):
-    normalized = normalize_text(value)
-    return normalized in {normalize_text(name), normalize_text(slug), normalize_text(identifier)}
-
-
 def _contains_normalized_phrase(normalized_query, phrase):
     return bool(phrase) and f" {phrase} " in f" {normalized_query} "
 
@@ -73,6 +68,29 @@ def fuzzy_location_suggestions(value, limit=5):
     return [{key: value for key, value in item.items() if key != "score"} for item in choices[:limit]]
 
 
+def _mentioned_scopes(query):
+    departments, localities = detect_location_mentions(query)
+    normalized = normalize_text(query)
+    explicit_department_names = {
+        normalize_text(department.name) for department in departments
+        if _contains_normalized_phrase(normalized, f"departamento de {normalize_text(department.name)}")
+    }
+    localities = [locality for locality in localities if normalize_text(locality.name) not in explicit_department_names]
+    locality_department_ids = {locality.department_id for locality in localities}
+    return [(locality.department, locality) for locality in localities] + [
+        (department, None) for department in departments if department.id not in locality_department_ids
+    ]
+
+
+def _scope_option(department, locality):
+    if locality:
+        return {
+            "kind": "locality", "id": locality.id, "name": locality.name, "department": department.name,
+            "departmentId": department.id, "localityId": locality.id,
+        }
+    return {"kind": "department", "id": department.id, "name": department.name, "departmentId": department.id, "localityId": None}
+
+
 def resolve_filters(query, location_text, department_id, locality_id):
     department = db.session.get(Department, department_id) if department_id else None
     locality = db.session.get(Locality, locality_id) if locality_id else None
@@ -82,43 +100,53 @@ def resolve_filters(query, location_text, department_id, locality_id):
         return None, {"code": "unknown_locality", "message": "La localidad elegida ya no está en el catálogo.", "options": []}
     if department and locality and locality.department_id != department.id:
         return None, {"code": "filter_conflict", "message": "La localidad no pertenece al departamento seleccionado.", "options": []}
-
-    found_departments, found_localities = detect_location_mentions(query)
-    mentioned_department_ids = {row.id for row in found_departments}
-    mentioned_locality_ids = {row.id for row in found_localities}
-    if location_text and not mentioned_department_ids and not mentioned_locality_ids:
-        suggestions = fuzzy_location_suggestions(location_text)
-        if suggestions:
-            return None, {"code": "location_spelling", "message": f"¿Quisiste decir {suggestions[0]['name']}? Elegí una ubicación para filtrar.", "options": suggestions}
-        # An unknown mention is not silently discarded or matched to a random place.
-        if location_text:
-            return None, {"code": "unknown_location", "message": "No pude resolver esa ubicación en el catálogo. Elegí departamento o localidad.", "options": []}
-
-    if len(mentioned_locality_ids) > 1:
-        options = [
-            {"kind": "locality", "id": loc.id, "name": loc.name, "department": loc.department.name, "departmentId": loc.department_id, "localityId": loc.id}
-            for loc in found_localities if loc.id in mentioned_locality_ids
-        ]
-        return None, {"code": "ambiguous_location", "message": "Esa localidad existe en más de un departamento. Elegí una opción.", "options": options}
-    if len(mentioned_department_ids) > 1:
-        return None, {"code": "ambiguous_location", "message": "La consulta menciona más de un departamento. Elegí uno en los filtros.", "options": []}
-
-    text_department = next((row for row in found_departments if row.id in mentioned_department_ids), None)
-    text_locality = next((row for row in found_localities if row.id in mentioned_locality_ids), None)
-    if department and text_department and department.id != text_department.id:
-        return None, {"code": "filter_conflict", "message": f"El filtro dice {department.name}, pero la consulta menciona {text_department.name}. Ajustá uno de los dos.", "options": []}
-    if locality and text_locality and locality.id != text_locality.id:
-        return None, {"code": "filter_conflict", "message": f"El filtro dice {locality.name}, pero la consulta menciona {text_locality.name}. Ajustá uno de los dos.", "options": []}
-    if locality and text_department and locality.department_id != text_department.id:
-        return None, {"code": "filter_conflict", "message": f"La localidad elegida no coincide con {text_department.name}, mencionado en la consulta.", "options": []}
-    if department and text_locality and locality is None and text_locality.department_id != department.id:
-        return None, {"code": "filter_conflict", "message": f"La localidad mencionada no pertenece a {department.name}.", "options": []}
-
-    department = department or text_department
-    locality = locality or text_locality
     if locality:
         department = locality.department
-    return {"department": department, "locality": locality, "source": "selected" if department_id or locality_id else ("query" if department or locality else "national")}, None
+
+    scopes = _mentioned_scopes(query)
+    if location_text and not scopes and normalize_text(location_text) not in {"uruguay", "todo uruguay", "todo el uruguay", "todo el pais"}:
+        suggestions = fuzzy_location_suggestions(location_text)
+        confirmed = any(
+            option["departmentId"] == (department.id if department else None)
+            and option["localityId"] == (locality.id if locality else None)
+            for option in suggestions
+        )
+        if confirmed:
+            return {"department": department, "locality": locality, "source": "selected"}, None
+        if suggestions:
+            return None, {
+                "code": "location_spelling", "message": f"¿Quisiste decir {suggestions[0]['name']}? Elegí una ubicación para filtrar.",
+                "options": suggestions, "requestedText": location_text,
+            }
+        return None, {
+            "code": "unknown_location", "message": "No encontré esa ubicación en el catálogo. Probá con otro nombre de ciudad o departamento.",
+            "options": [], "requestedText": location_text,
+        }
+
+    if department and scopes:
+        matching = [
+            (candidate_department, candidate_locality)
+            for candidate_department, candidate_locality in scopes
+            if candidate_department.id == department.id
+            and (not locality or not candidate_locality or candidate_locality.id == locality.id)
+        ]
+        if not matching:
+            return None, {
+                "code": "filter_conflict", "message": "La ubicación elegida no coincide con lo que escribiste. ¿Dónde querés buscar?",
+                "options": [_scope_option(*scope) for scope in scopes],
+            }
+        scopes = matching
+    if len(scopes) > 1:
+        return None, {
+            "code": "ambiguous_location", "message": "Encontré más de una ubicación. ¿Dónde querés buscar?",
+            "options": [_scope_option(*scope) for scope in scopes],
+        }
+    if scopes:
+        text_department, text_locality = scopes[0]
+        department = department or text_department
+        locality = locality or text_locality
+    source = "selected" if department_id or locality_id else ("query" if department else "national")
+    return {"department": department, "locality": locality, "source": source}, None
 
 
 def eligible_profiles(statement, geo):

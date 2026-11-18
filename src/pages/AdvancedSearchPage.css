@@ -1,0 +1,53 @@
+.search-chat {
+  background:
+    radial-gradient(ellipse at 50% 0, color-mix(in oklab, var(--color-primary) 9%, transparent), transparent 64%),
+    var(--color-base-200);
+}
+
+.search-chat__frame {
+  height: clamp(26rem, calc(100dvh - 8.75rem), 64rem);
+}
+
+.search-chat__thread {
+  background: color-mix(in oklab, var(--color-base-200) 50%, var(--color-base-100));
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-base-300) transparent;
+}
+
+.search-chat__thread:focus-visible {
+  outline-offset: -2px;
+}
+
+.search-chat__welcome {
+  background: radial-gradient(ellipse at 50% 42%, color-mix(in oklab, var(--color-primary) 8%, transparent), transparent 64%);
+}
+
+.search-chat__mark {
+  box-shadow: 0 12px 42px -17px color-mix(in oklab, var(--color-primary) 60%, transparent);
+}
+
+.search-chat__input {
+  field-sizing: content;
+  max-height: 9rem;
+}
+
+.search-chat__turn:last-child {
+  animation: search-chat-arrive 260ms ease-out both;
+}
+
+@keyframes search-chat-arrive {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 640px) {
+  .search-chat__frame {
+    height: clamp(30rem, calc(100dvh - 9.5rem), 64rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-chat__turn:last-child {
+    animation: none;
+  }
+}

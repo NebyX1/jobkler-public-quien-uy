@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 from typing_extensions import Annotated
 
 
@@ -15,12 +15,19 @@ class AdvancedSearchRequest(BaseModel):
     query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=500)]
     departmentId: Annotated[str | None, StringConstraints(strip_whitespace=True, max_length=80)] = None
     localityId: Annotated[str | None, StringConstraints(strip_whitespace=True, max_length=80)] = None
+    locationScope: Literal["national"] | None = None
     limit: int = Field(default=10, ge=1, le=20)
 
     @field_validator("departmentId", "localityId")
     @classmethod
     def empty_ids_are_null(cls, value):
         return value or None
+
+    @model_validator(mode="after")
+    def validate_location_scope(self):
+        if self.locationScope and (self.departmentId or self.localityId):
+            raise ValueError("La búsqueda nacional no admite un filtro de ubicación.")
+        return self
 
 
 class SearchIntent(BaseModel):

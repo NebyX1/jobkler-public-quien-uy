@@ -1,4 +1,7 @@
-from flask import Blueprint, current_app, jsonify, request
+import json
+from uuid import uuid4
+
+from flask import Blueprint, Response, current_app, jsonify, request, stream_with_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError
 
@@ -6,20 +9,24 @@ from app.extensions import db
 from app.services.sessions import require_csrf, current_account
 
 from .jobkler import serialize_profile, api_error
+from app.search.catalog import resolve_filters
 from app.search.contracts import AdvancedSearchRequest
 from app.search.engine import reserve_account_request, search_profiles, deterministic_intent, profession_spelling_options, prepare_intent
 from app.search.llm import InferenceBusy, InferenceUnavailable, extract_intent
 
 advanced_search_bp = Blueprint("advanced_search_api", __name__, url_prefix="/search")
+PROGRESS_TYPE = "application/x-ndjson"
 
 
-def _response(status, message, *, options=None, code=None):
-    result = {"request_id": __import__("uuid").uuid4().hex, "status": status, "message": message, "results": []}
+def _response(status, message, *, code=None):
+    result = {"request_id": uuid4().hex, "status": status, "message": message, "results": []}
     if code:
         result["error"] = {"code": code, "message": message}
-    if options is not None:
-        result["clarification"] = {"options": options}
-    return jsonify(result)
+    return result
+
+
+def _result(result, status=200):
+    return {"type": "result", "status": status, "result": result}
 
 
 @advanced_search_bp.post("/advanced")
@@ -38,7 +45,7 @@ def advanced_search():
             raw_payload["limit"] = current_app.config["AI_SEARCH_DEFAULT_RESULTS"]
         payload = AdvancedSearchRequest.model_validate(raw_payload)
     except ValidationError as exc:
-        return jsonify({"error": "La búsqueda tiene campos inválidos.", "details": exc.errors(include_input=False)}), 400
+        return jsonify({"error": "La búsqueda tiene campos inválidos.", "details": exc.errors(include_input=False, include_context=False)}), 400
     except (TypeError, ValueError):
         return api_error("La solicitud debe ser un objeto JSON válido.", 400)
     if len(payload.query) > current_app.config["AI_SEARCH_MAX_QUERY_CHARS"]:
@@ -51,6 +58,21 @@ def advanced_search():
         db.session.rollback()
         return _response("busy", "La búsqueda está ocupada. Probá nuevamente en un momento.", code="database_busy"), 503
 
+    events = _search_events(payload)
+    if request.accept_mimetypes.best == PROGRESS_TYPE:
+        return Response(
+            stream_with_context(json.dumps(event, ensure_ascii=False) + "\n" for event in events),
+            content_type=PROGRESS_TYPE,
+            headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no", "Vary": "Accept"},
+        )
+
+    for event in events:
+        if event["type"] == "result":
+            return jsonify(event["result"]), event["status"], {"Vary": "Accept"}
+
+
+def _search_events(payload):
+    yield {"type": "stage", "stage": "interpretation"}
     degradation = []
     try:
         intent = extract_intent(
@@ -63,46 +85,45 @@ def advanced_search():
             queue_wait_seconds=current_app.config["AI_SEARCH_QUEUE_WAIT_SECONDS"],
         )
     except InferenceBusy:
-        return _response("busy", "El motor local está ocupado; esperá un momento y reenviá la búsqueda.", code="inference_busy"), 503
+        yield _result(_response("busy", "El motor local está ocupado; esperá un momento y reenviá la búsqueda.", code="inference_busy"), 503)
+        return
     except InferenceUnavailable as exc:
         intent = deterministic_intent(payload.query)
         degradation.append(f"No se pudo interpretar con Qwen local ({str(exc)}); se aplicó extracción determinista.")
 
+    if intent.status == "ambiguous":
+        result = _response("ambiguous", "La consulta permite más de una interpretación. Editá el texto y volvé a buscar.")
+        result.update(applied_filters={}, clarification={"code": "service_ambiguous", "options": []})
+        yield _result(result)
+        return
+    if intent.status == "unsupported":
+        yield _result({**_response("unsupported", "Escribí un servicio u oficio para buscar perfiles."), "applied_filters": {}})
+        return
+
+    yield {"type": "stage", "stage": "location"}
     # Keep geographic tokens out of service retrieval; the catalog filter is applied separately.
     prepare_intent(intent, payload.query)
-
-    if intent.status == "ambiguous":
-        return jsonify({
-            "request_id": __import__("uuid").uuid4().hex,
-            "status": "ambiguous",
-            "message": "La consulta permite más de una interpretación. Editá el texto y volvé a buscar.",
-            "applied_filters": {}, "clarification": {"code": "service_ambiguous", "options": []}, "results": [],
-        })
-    if intent.status == "unsupported":
-        return jsonify({
-            "request_id": __import__("uuid").uuid4().hex,
-            "status": "unsupported",
-            "message": "Escribí un servicio u oficio para buscar perfiles.",
-            "applied_filters": {}, "results": [],
-        })
 
     if not intent.profession_text:
         profession_options = profession_spelling_options(payload.query)
         if profession_options:
-            return jsonify({
-                "request_id": __import__("uuid").uuid4().hex,
-                "status": "ambiguous",
-                "message": profession_options["message"],
-                "applied_filters": {},
-                "clarification": profession_options,
-                "results": [],
-            })
+            result = _response("ambiguous", profession_options["message"])
+            result.update(applied_filters={}, clarification=profession_options)
+            yield _result(result)
+            return
+
+    geography = (
+        ({"department": None, "locality": None, "source": "national"}, None)
+        if payload.locationScope == "national"
+        else resolve_filters(payload.query, intent.location_text, payload.departmentId, payload.localityId)
+    )
+    if not geography[1]:
+        yield {"type": "stage", "stage": "retrieval"}
 
     result = search_profiles(
         intent,
         query=payload.query,
-        department_id=payload.departmentId,
-        locality_id=payload.localityId,
+        resolved_geography=geography,
         limit=min(payload.limit, current_app.config["AI_SEARCH_MAX_RESULTS"]),
         config=current_app.config,
         serialize_profile=serialize_profile,
@@ -111,4 +132,4 @@ def advanced_search():
         result["status"] = "degraded"
         result["degradation"] = degradation + result.get("degradation", [])
         result["message"] += " La interpretación local no respondió y se usó una búsqueda determinista."
-    return jsonify(result)
+    yield _result(result)

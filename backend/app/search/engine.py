@@ -382,11 +382,14 @@ def _location_label(profile, geo):
     return f"En {profile.locality.name}, {profile.department.name}"
 
 
-def search_profiles(intent, *, query, department_id=None, locality_id=None, limit=10, config, encoder=None, query_vector=None, serialize_profile, include_metrics=False):
+def search_profiles(
+    intent, *, query, department_id=None, locality_id=None, limit=10, config,
+    encoder=None, query_vector=None, serialize_profile, include_metrics=False, resolved_geography=None,
+):
     request_id = str(uuid.uuid4())
     started = time.perf_counter()
     parse_started = time.perf_counter()
-    geo, clarification = resolve_filters(query, intent.location_text, department_id, locality_id)
+    geo, clarification = resolved_geography or resolve_filters(query, intent.location_text, department_id, locality_id)
     if clarification:
         result = {
             "request_id": request_id, "status": "ambiguous", "message": clarification["message"],
@@ -395,11 +398,19 @@ def search_profiles(intent, *, query, department_id=None, locality_id=None, limi
         if include_metrics:
             result["metrics"] = {"filter_ms": (time.perf_counter() - parse_started) * 1000, "fts_ms": 0.0, "query_embedding_ms": 0.0, "vector_scan_ms": 0.0, "retrieval_ms": 0.0, "total_ms": (time.perf_counter() - started) * 1000}
         return result
-    profession_terms, profession_clarification = _profession_resolution(intent.profession_text)
+    applied_filters = {
+        "department": geo["department"].name if geo["department"] else None,
+        "departmentId": geo["department"].id if geo["department"] else None,
+        "locality": geo["locality"].name if geo["locality"] else None,
+        "localityId": geo["locality"].id if geo["locality"] else None,
+        "locationSource": geo["source"],
+        "profession": intent.profession_text,
+    }
+    _, profession_clarification = _profession_resolution(intent.profession_text)
     if profession_clarification:
         result = {
             "request_id": request_id, "status": "ambiguous", "message": profession_clarification["message"],
-            "applied_filters": {"department": geo["department"].name if geo["department"] else None, "locality": geo["locality"].name if geo["locality"] else None},
+            "applied_filters": applied_filters,
             "clarification": profession_clarification, "results": [],
         }
         if include_metrics:
@@ -410,7 +421,7 @@ def search_profiles(intent, *, query, department_id=None, locality_id=None, limi
     if not eligible_ids:
         result = {
             "request_id": request_id, "status": "empty", "message": "No encontramos perfiles activos con esos filtros.",
-            "applied_filters": {"department": geo["department"].name if geo["department"] else None, "locality": geo["locality"].name if geo["locality"] else None},
+            "applied_filters": applied_filters,
             "results": [],
         }
         if include_metrics:
@@ -487,21 +498,14 @@ def search_profiles(intent, *, query, department_id=None, locality_id=None, limi
         semantic_ms, search_elapsed, elapsed, bool(encoder_error),
     )
     degraded = bool(encoder_error)
-    message = "Sobre tu búsqueda, esto fue lo que pude encontrar." if results else "No encontramos coincidencias suficientes en los perfiles activos. Podés ampliar la ubicación desde los filtros."
+    message = "Sobre tu búsqueda, esto fue lo que pude encontrar." if results else "No encontré coincidencias suficientes entre los perfiles activos."
     if degraded:
         message += " La búsqueda semántica está temporalmente reducida; se usó texto y evidencia literal."
     result = {
         "request_id": request_id,
         "status": "degraded" if degraded else ("ok" if results else "empty"),
         "message": message,
-        "applied_filters": {
-            "department": geo["department"].name if geo["department"] else None,
-            "departmentId": geo["department"].id if geo["department"] else None,
-            "locality": geo["locality"].name if geo["locality"] else None,
-            "localityId": geo["locality"].id if geo["locality"] else None,
-            "locationSource": geo["source"],
-            "profession": intent.profession_text,
-        },
+        "applied_filters": applied_filters,
         "degradation": [encoder_error] if encoder_error else [],
         "results": results,
     }

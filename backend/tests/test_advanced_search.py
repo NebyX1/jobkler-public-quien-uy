@@ -95,6 +95,43 @@ class AdvancedSearchTest(unittest.TestCase):
         extract.assert_not_called()
         self.assertEqual(self.client.get("/api/profiles?q=termofones").status_code, 200)
 
+    def test_chat_stream_announces_search_before_inference_and_preserves_applied_location(self):
+        self.login_if_needed()
+        with patch("app.api.advanced_search.extract_intent", return_value=make_intent()) as extract:
+            with self.client.post(
+                "/api/search/advanced",
+                json={"query": "Necesito reparar termofones en Minas"},
+                headers={**self.headers, "Accept": "application/x-ndjson"},
+                buffered=False,
+            ) as response:
+                self.assertEqual(response.mimetype, "application/x-ndjson")
+                stream = iter(response.response)
+                self.assertEqual(json.loads(next(stream)), {"type": "stage", "stage": "interpretation"})
+                extract.assert_not_called()
+                events = [json.loads(line) for line in stream]
+
+        self.assertEqual([event["stage"] for event in events[:-1]], ["location", "retrieval"])
+        terminal = events[-1]
+        self.assertEqual(terminal["type"], "result")
+        self.assertEqual(terminal["status"], 200)
+        self.assertEqual(terminal["result"]["applied_filters"]["localityId"], "minas")
+
+    def test_chat_widening_does_not_reapply_the_original_location(self):
+        self.login_if_needed()
+        response = self.post_search(body={"query": "Necesito reparar termofones en Minas", "locationScope": "national"})
+        self.assertEqual(response.status_code, 200)
+        filters = response.get_json()["applied_filters"]
+        self.assertEqual(filters["locationSource"], "national")
+        self.assertIsNone(filters["localityId"])
+        self.assertIsNone(filters["departmentId"])
+
+        response = self.post_search(body={
+            "query": "Necesito reparar termofones en Minas",
+            "locationScope": "national",
+            "localityId": "minas",
+        })
+        self.assertEqual(response.status_code, 400)
+
     def test_expanded_seed_indexes_secondary_work_and_preserves_later_changes(self):
         with self.app.app_context():
             result = seed_expanded_profiles()
@@ -244,15 +281,59 @@ class AdvancedSearchTest(unittest.TestCase):
         self.assertEqual(conflict.get_json()["results"], [])
 
     def test_location_typo_is_suggested_without_selecting_it(self):
+        query = "Reparar termofones en Minaz"
         response = self.post_search(
-            query="Reparar termofones en Minaz",
+            query=query,
             intent=make_intent(location="Minaz"),
         )
         data = response.get_json()
         self.assertEqual(data["status"], "ambiguous")
         self.assertEqual(data["clarification"]["code"], "location_spelling")
-        self.assertTrue(any(option["name"] == "Minas" for option in data["clarification"]["options"]))
+        self.assertEqual(data["clarification"]["requestedText"], "Minaz")
         self.assertEqual(data["results"], [])
+        minas = next(option for option in data["clarification"]["options"] if option["name"] == "Minas")
+        confirmed = self.post_search(
+            body={"query": query, "departmentId": minas["departmentId"], "localityId": minas["localityId"]},
+            intent=make_intent(location="Minaz"),
+        ).get_json()
+        self.assertEqual(confirmed["status"], "ok")
+        self.assertEqual(confirmed["applied_filters"]["localityId"], "minas")
+        self.assertEqual(confirmed["applied_filters"]["locationSource"], "selected")
+
+    def test_choosing_a_city_resolves_multiple_places_in_the_original_query(self):
+        query = "Reparar termofones en Minas o en Montevideo"
+        data = self.post_search(query=query, intent=make_intent(location="Minas")).get_json()
+        self.assertEqual(data["clarification"]["code"], "ambiguous_location")
+        choices = {option["name"]: option for option in data["clarification"]["options"]}
+        self.assertEqual(set(choices), {"Minas", "Montevideo"})
+        confirmed = self.post_search(
+            body={"query": query, "localityId": choices["Minas"]["localityId"]},
+            intent=make_intent(location="Minas"),
+        ).get_json()
+        self.assertEqual(confirmed["status"], "ok")
+        self.assertEqual(confirmed["applied_filters"]["localityId"], "minas")
+        self.assertEqual(confirmed["applied_filters"]["departmentId"], "lavalleja")
+        self.assertTrue(all("Minas" in item["locationLabel"] for item in confirmed["results"]))
+
+    def test_location_remains_applied_when_no_profiles_match_the_requested_trade(self):
+        intent = SearchIntent(
+            status="ok", search_text="mecánico", profession_text="mecánico", action_text=None,
+            object_text=None, location_text=None, related_terms=[], excluded_terms=[],
+        )
+        data = self.post_search(query="Quiero un mecánico en Minas", intent=intent).get_json()
+        self.assertEqual(data["status"], "empty")
+        self.assertEqual(data["applied_filters"], {
+            "department": "Lavalleja", "departmentId": "lavalleja", "locality": "Minas",
+            "localityId": "minas", "locationSource": "query", "profession": "mecánico",
+        })
+
+    def test_department_named_explicitly_stays_department_wide(self):
+        data = self.post_search(
+            query="Reparar termofones en el departamento de Maldonado",
+            intent=make_intent(location="Maldonado"),
+        ).get_json()
+        self.assertEqual(data["applied_filters"]["departmentId"], "maldonado")
+        self.assertIsNone(data["applied_filters"]["localityId"])
 
     def test_missing_qwen_uses_deterministic_text_search_and_marks_degraded(self):
         with patch("app.api.advanced_search.extract_intent", side_effect=InferenceUnavailable("connection refused")):

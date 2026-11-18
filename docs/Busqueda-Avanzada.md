@@ -2,7 +2,9 @@
 
 ## Recorrido
 
-La ruta React `/buscar/avanzada` envía cada consulta manual a `POST /api/search/advanced`. Flask exige sesión de Jobkler y CSRF antes de usar Qwen. Una consulta JSON pequeña se interpreta con una sola llamada a la API local de llama.cpp; Pydantic vuelve a validar el contrato. Si Qwen no responde o entrega JSON inválido, se usa el extractor determinista y la respuesta queda marcada como degradada. Saturación o límite de tiempo se informan como estado recuperable, sin reintentar.
+El chat en `/buscar/avanzada` envía cada mensaje a `POST /api/search/advanced`. Flask exige sesión de Jobkler y CSRF antes de usar Qwen. Cada consulta se interpreta con una llamada a la API local de llama.cpp y Pydantic valida la respuesta. Si Qwen no responde o entrega JSON inválido, se usa el extractor determinista y la respuesta indica que la búsqueda funcionó en modo reducido.
+
+El chat solicita `Accept: application/x-ndjson` para recibir las etapas `interpretation`, `location` y `retrieval` a medida que empieza cada una. Un evento final `result` trae la respuesta y el código de estado de la búsqueda. Los clientes que solicitan JSON reciben la respuesta completa al finalizar. Los errores de sesión y validación conservan su código HTTP y formato JSON.
 
 La recuperación aplica primero los filtros de profesión, localidad y cobertura declarada a ambas ramas. SQLite FTS5 consulta el documento completo de perfil y ordena con BM25. En paralelo, NumPy puntúa contra los fragmentos vigentes de todos los perfiles geográficamente elegibles; esa rama no depende de que FTS encuentre candidatos. Los rankings se combinan con Reciprocal Rank Fusion, `k=60`. Finalmente, SQL vuelve a comprobar publicación y hash y solo entonces arma tarjetas con evidencia literal del perfil actual.
 
@@ -23,7 +25,9 @@ Qwen se configura con `AI_LLM_BASE_URL` y el alias real visible en `/v1/models`.
 
 ## Interfaz y evidencia
 
-El formulario envía al pulsar Buscar o Enter y acepta filtros de departamento/localidad. Una contradicción o escritura dudosa pide selección; no escoge una ubicación automáticamente. Sin ubicación se busca a nivel nacional. La UI diferencia coincidencia directa y relacionada, y muestra el texto literal que fundamenta cada perfil. Si no hay resultados, ampliar el área es una acción explícita. No se afirma disponibilidad ni se convierten instalaciones en reparaciones. Los perfiles ficticios llevan marca visible de fixture y la tarjeta ya no inventa una reseña de cero.
+La ventana inicial ofrece un campo de mensaje y ejemplos. Al enviar, el asistente aplica automáticamente la localidad o el departamento reconocido en el catálogo y muestra la zona en la respuesta, incluso si la búsqueda queda vacía. Si el nombre es dudoso o hay varias ubicaciones posibles, ofrece opciones para confirmar. Cada nuevo mensaje inicia una búsqueda independiente. El historial visible vive en la página y se borra al abrir un nuevo chat o recargar.
+
+Si el usuario omite la ubicación, se busca en todo Uruguay. El botón **Buscar en todo Uruguay** vuelve a buscar el mismo servicio con `locationScope: "national"`. El contrato admite `departmentId` y `localityId` al elegir una ubicación sugerida. La interfaz diferencia coincidencias directas y relacionadas, conserva el fragmento del perfil publicado e indica cuándo el perfil es ficticio.
 
 Las reglas de negación cubren patrones frecuentes y comprobados, como “no reparo” y “no declaro trabajos de reparación”. No son comprensión exhaustiva de toda redacción. Evidencia semántica sin declaración directa se presenta como relacionada.
 

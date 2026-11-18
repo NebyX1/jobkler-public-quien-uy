@@ -1,5 +1,10 @@
 # Cambios relevantes
 
+## 2026-11-18
+
+- La búsqueda avanzada usa una interfaz de chat con historial temporal, ejemplos y etapas de progreso que llegan desde Flask.
+- El chat aplica la ubicación reconocida en el mensaje, muestra la zona en los resultados y ofrece acciones para confirmar un lugar dudoso o ampliar la búsqueda a todo Uruguay.
+
 ## 2026-11-17
 
 - Se incorporó `ai-engine/` para administrar Qwen3.5-2B con llama.cpp local, autenticación compartida con Flask, verificación de disponibilidad y parada del proceso registrado. Los pesos, binarios y secretos se preparan fuera de Git.

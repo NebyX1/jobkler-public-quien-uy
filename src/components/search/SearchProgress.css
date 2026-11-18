@@ -1,0 +1,129 @@
+.search-progress {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 27rem;
+  overflow: hidden;
+  padding: 1rem 1.125rem 1.125rem;
+  border: 1px solid color-mix(in oklab, var(--color-primary) 24%, var(--color-base-300));
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(ellipse at top left, color-mix(in oklab, var(--color-primary) 9%, transparent), transparent 73%),
+    var(--color-base-100);
+  box-shadow: 0 10px 30px -24px color-mix(in oklab, var(--color-secondary) 45%, transparent);
+}
+
+.search-progress::before {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 65%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  content: '';
+  animation: search-progress-glide 3s ease-in-out infinite alternate;
+}
+
+.search-progress__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.7rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.search-progress__dots {
+  display: inline-flex;
+  gap: 0.25rem;
+  color: var(--color-secondary);
+}
+
+.search-progress__dots i {
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: search-progress-dot 1.6s ease-in-out infinite;
+}
+
+.search-progress__dots i:nth-child(2) { animation-delay: 0.14s; }
+.search-progress__dots i:nth-child(3) { animation-delay: 0.28s; }
+
+.search-progress__steps {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.search-progress__steps li {
+  display: grid;
+  grid-template-columns: 1.8rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2rem;
+  color: color-mix(in oklab, var(--color-base-content) 68%, var(--color-base-100));
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  transition: color 250ms ease;
+}
+
+.search-progress__icon {
+  position: relative;
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border: 1px solid var(--color-base-300);
+  border-radius: 0.55rem;
+  background: var(--color-base-200);
+  transition: color 250ms ease, background-color 250ms ease, border-color 250ms ease;
+}
+
+.search-progress__steps li[data-state='active'] {
+  color: var(--color-base-content);
+  font-weight: 750;
+}
+
+.search-progress__steps li[data-state='complete'] .search-progress__icon,
+.search-progress__steps li[data-state='active'] .search-progress__icon {
+  border-color: color-mix(in oklab, var(--color-primary) 30%, var(--color-base-300));
+  background: color-mix(in oklab, var(--color-primary) 14%, var(--color-base-100));
+  color: var(--color-secondary);
+}
+
+.search-progress__steps li[data-state='active'] .search-progress__icon::after {
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--color-primary);
+  border-radius: inherit;
+  content: '';
+  animation: search-progress-ring 1.8s ease-out infinite;
+}
+
+@keyframes search-progress-glide {
+  from { transform: translateX(-85%); opacity: 0.3; }
+  to { transform: translateX(150%); opacity: 0.9; }
+}
+
+@keyframes search-progress-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.48; }
+  30% { transform: translateY(-0.18rem); opacity: 1; }
+}
+
+@keyframes search-progress-ring {
+  from { transform: scale(0.96); opacity: 0.72; }
+  to { transform: scale(1.25); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-progress::before,
+  .search-progress__dots i,
+  .search-progress__steps li[data-state='active'] .search-progress__icon::after {
+    animation: none;
+  }
+
+  .search-progress__steps li,
+  .search-progress__icon {
+    transition: none;
+  }
+}

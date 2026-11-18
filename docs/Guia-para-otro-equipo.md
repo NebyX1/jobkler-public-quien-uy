@@ -98,7 +98,7 @@ Para detener los servicios registrados: `bash ./stop.sh`.
 ## 4. Comprobar que funciona
 
 1. Abrí [http://127.0.0.1:5173](http://127.0.0.1:5173), ingresá con **Cliente Demo** y abrí **Búsqueda Avanzada**.
-2. Buscá `Hay alguien que coloque aires acondicionados?`. En una base recién sembrada deben aparecer perfiles ficticios con evidencia en sus descripciones. Los resultados pueden variar si se editó la base o cambia el modelo.
+2. Enviá `¿Hay alguien que arregle termofones en Minas?` en el chat. Deberías ver las etapas de búsqueda y **Minas, Lavalleja** como ubicación detectada. Una base recién sembrada contiene perfiles ficticios que declaran ese servicio. Los resultados pueden variar si se editó la base o cambia el modelo.
 3. Revisá el motor desde la raíz: `python ai-engine/engine.py status` en Windows o `python3.11 ai-engine/engine.py status` en Linux. Debe indicar `running: true` y `ready: true`.
 4. Consultá `http://127.0.0.1:5173/api/health/ready`: debe responder con `status: ready` y `database: ok`. Esta comprobación verifica Flask y SQLite; **no** confirma por sí sola que Qwen o el índice semántico estén listos.
 5. Ejecutá `npm run verify` desde la raíz para compilar el frontend, pasar ESLint y correr las pruebas del backend. El comando requiere que el inicio haya creado `backend/.venv`. Las pruebas automatizadas no equivalen por sí solas a una búsqueda real con Qwen.

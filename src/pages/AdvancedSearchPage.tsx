@@ -1,353 +1,418 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, LoaderCircle, Search, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import { Navbar } from '../components/landing/Navbar';
-import { Footer } from '../components/landing/Footer';
-import { ProfileCard } from '../components/landing/ProfileCard';
+import {
+  ArrowRight, ArrowUp, CircleAlert, LocateFixed, MapPin, Plus, RotateCcw,
+  Snowflake, Sparkles, Wrench,
+} from 'lucide-react';
 import { authApi } from '../api/auth';
+import { Navbar } from '../components/landing/Navbar';
+import { ProfileAvatar } from '../components/ProfileAvatar';
+import { SearchProgress } from '../components/search/SearchProgress';
 import { useAuth } from '../lib/auth';
-import { getCatalog } from '../services/locationService';
-import { searchAdvanced, type AdvancedSearchResponse, type SearchClarificationOption } from '../services/advancedSearchService';
+import {
+  AdvancedSearchRequestError, searchAdvanced, type AdvancedSearchInput,
+  type AdvancedSearchResponse, type AdvancedSearchResult, type SearchClarificationOption,
+  type SearchProgressStage,
+} from '../services/advancedSearchService';
+import './AdvancedSearchPage.css';
 
-const EXAMPLES = [
-  '¿Hay alguien que arregle termofones en Minas?',
-  'Necesito reparar una puerta de madera',
-  'Busco alguien que coloque muebles a medida en Lavalleja',
+const examples = [
+  { text: 'Quiero un mecánico en Minas', Icon: Wrench },
+  { text: '¿Quién instala aire acondicionado en Pando?', Icon: Snowflake },
+  { text: 'Busco alguien que haga muebles a medida', Icon: Sparkles },
 ];
 
-function removeLocationFromQuery(query: string, values: Array<string | null | undefined>) {
-  let result = query;
-  for (const value of values.filter((item): item is string => Boolean(item))) {
-    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    result = result.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), ' ');
-  }
-  return result
-    .replace(/\b(?:en|dentro de|de)\s*(?=[,.;!?]|$)/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .replace(/\s+([,.;!?])/g, '$1')
-    .trim();
+type Outcome =
+  | { kind: 'pending'; stage?: SearchProgressStage }
+  | { kind: 'result'; response: AdvancedSearchResponse }
+  | { kind: 'error'; message: string; status?: number };
+
+type ChatTurn = {
+  id: number;
+  input: AdvancedSearchInput;
+  message: string;
+  outcome: Outcome;
+};
+
+type TurnRequest = Pick<ChatTurn, 'input' | 'message'>;
+
+function placeLabel(locality?: string | null, department?: string | null) {
+  return locality && department && locality !== department ? `${locality}, ${department}` : locality || department || '';
 }
 
-function sourceFieldLabel(value: string) {
-  const labels: Record<string, string> = {
-    profession: 'Oficio',
-    category: 'Categoría',
-    short_description: 'Descripción breve',
-    description: 'Descripción del perfil',
-    tags: 'Etiquetas del perfil',
-  };
-  return labels[value] || 'Perfil';
+function words(text: string) {
+  return [...text.matchAll(/[\p{L}\p{M}\p{N}]+/gu)];
+}
+
+function normalize(word: string) {
+  return word.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
+function replacePhrase(text: string, phrase: string, replacement = '') {
+  const source = words(text);
+  const target = words(phrase).map(([word]) => normalize(word));
+  if (!target.length) return text;
+
+  let result = '';
+  let cursor = 0;
+  for (let i = 0; i <= source.length - target.length; i += 1) {
+    if (!target.every((word, offset) => normalize(source[i + offset][0]) === word)) continue;
+    const start = source[i].index;
+    const end = source[i + target.length - 1];
+    result += text.slice(cursor, start) + replacement;
+    cursor = end.index + end[0].length;
+    i += target.length - 1;
+  }
+  return result + text.slice(cursor);
+}
+
+function ResultCard({ result }: { result: AdvancedSearchResult }) {
+  const { profile, evidence, locationLabel } = result;
+  const name = profile.displayName || profile.name;
+  const direct = evidence.matchType === 'direct';
+
+  return (
+    <article className="flex min-w-0 flex-col rounded-2xl border border-base-300 bg-base-100 p-4">
+      <div className="flex items-center gap-3">
+        <ProfileAvatar src={profile.photoUrl} fallbackSrc={profile.avatarFallback} name={name} size={38} />
+        <div className="min-w-0">
+          <h3 className="break-words text-sm font-extrabold">{name}</h3>
+          <p className="break-words text-xs text-base-content/70">{profile.profession}</p>
+        </div>
+      </div>
+      <p className="mt-3 flex items-start gap-1.5 text-xs font-semibold text-secondary">
+        <MapPin aria-hidden="true" size={14} className="mt-px shrink-0" /> {locationLabel}
+      </p>
+      <blockquote className="my-3 line-clamp-4 border-l-2 border-primary/45 pl-3 text-sm leading-relaxed text-base-content/80">
+        “{evidence.text}”
+      </blockquote>
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span className="text-base-content/65">{direct ? 'Coincidencia directa' : 'Experiencia relacionada'}{profile.isFictionalDemo ? ' · Perfil ficticio' : ''}</span>
+        <Link to={`/perfil/${profile.slug}`} aria-label={`Ver perfil de ${name}`} className="inline-flex items-center gap-1 font-extrabold text-secondary hover:underline">
+          Ver perfil <ArrowRight aria-hidden="true" size={14} />
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function SearchReply({
+  response, disabled, onClarify, onBroaden, onEdit,
+}: {
+  response: AdvancedSearchResponse;
+  disabled: boolean;
+  onClarify: (option: SearchClarificationOption) => void;
+  onBroaden?: () => void;
+  onEdit: () => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const filters = response.applied_filters;
+  const area = placeLabel(filters?.locality, filters?.department) || (filters?.locationSource === 'national' ? 'Todo Uruguay' : '');
+  const count = response.results.length;
+  const needsClarification = response.status === 'ambiguous';
+  const options = response.clarification?.options ?? [];
+  const title = count
+    ? `Encontré ${count} ${count === 1 ? 'perfil' : 'perfiles'}`
+    : ['ok', 'empty', 'degraded'].includes(response.status)
+      ? 'No encontré coincidencias suficientes'
+      : response.message;
+
+  return (
+    <div className="min-w-0 flex-1 space-y-3">
+      <div className="w-fit max-w-full rounded-2xl rounded-tl-md border border-base-300 bg-base-100 px-4 py-3 text-sm sm:px-5">
+        <p className="font-bold" role="status">{title}</p>
+        {needsClarification && !options.length && (
+          <button type="button" className="btn btn-ghost btn-xs mt-2 px-0 font-bold text-secondary" onClick={onEdit} disabled={disabled}>
+            Editar mensaje
+          </button>
+        )}
+        {area && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/12 px-2.5 py-1 text-xs font-extrabold text-secondary">
+              <MapPin aria-hidden="true" size={14} /> {area}
+            </span>
+            <span className="text-xs text-base-content/70">
+              {filters?.locationSource === 'query' ? 'Ubicación detectada en tu mensaje' : 'Zona de búsqueda'}
+            </span>
+          </div>
+        )}
+        {response.degradation?.length ? (
+          <div className="mt-3 flex items-start gap-2 border-t border-base-300 pt-2.5 text-xs leading-relaxed text-base-content/75">
+            <CircleAlert aria-hidden="true" size={15} className="shrink-0 text-error" />
+            <span>{response.degradation.join(' ')}</span>
+          </div>
+        ) : null}
+      </div>
+
+      {count > 0 && (
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {(showAll ? response.results : response.results.slice(0, 4)).map((result) => (
+            <ResultCard key={result.profile.id} result={result} />
+          ))}
+        </div>
+      )}
+      {(options.length > 0 || onBroaden || count > 4) && (
+        <div className="flex flex-wrap gap-2">
+          {options.map((option) => (
+            <button type="button" key={`${option.kind}-${option.id ?? option.name}`} className="btn btn-outline btn-sm h-auto min-h-8 rounded-full whitespace-normal text-left" onClick={() => onClarify(option)} disabled={disabled}>
+              {option.kind === 'profession' ? option.name : placeLabel(option.kind === 'locality' ? option.name : undefined, option.kind === 'department' ? option.name : option.department)}
+            </button>
+          ))}
+          {count > 4 && (
+            <button type="button" className="btn btn-outline btn-sm rounded-full" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}>
+              {showAll ? 'Ver menos' : `Ver ${count - 4} perfiles más`}
+            </button>
+          )}
+          {onBroaden && (
+            <button type="button" className="btn btn-ghost btn-sm gap-1.5 rounded-full font-bold text-secondary" onClick={onBroaden} disabled={disabled}>
+              <LocateFixed aria-hidden="true" size={15} /> Buscar en todo Uruguay
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AdvancedSearchPage() {
-  const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const [query, setQuery] = useState('');
-  const [departmentId, setDepartmentId] = useState('');
-  const [localityId, setLocalityId] = useState('');
-  const [response, setResponse] = useState<AdvancedSearchResponse | null>(null);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const sequence = useRef(0);
-  const controller = useRef<AbortController | null>(null);
+  const { user, loading } = useAuth();
+  return (
+    <div className="flex min-h-dvh flex-col bg-base-100">
+      <Navbar />
+      <SearchChat key={user?.id ?? 'guest'} isAuthenticated={Boolean(user)} authLoading={loading} />
+    </div>
+  );
+}
+
+function SearchChat({ isAuthenticated, authLoading }: { isAuthenticated: boolean; authLoading: boolean }) {
+  const [draft, setDraft] = useState('');
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const activeRequest = useRef<AbortController | null>(null);
+  const nextId = useRef(0);
+  const thread = useRef<HTMLDivElement>(null);
+  const latestTurn = useRef<HTMLDivElement>(null);
+  const composer = useRef<HTMLTextAreaElement>(null);
   const authConfig = useQuery({ queryKey: ['auth-config'], queryFn: authApi.config, staleTime: 60_000 });
-  const catalog = useQuery({ queryKey: ['jobkler-catalog'], queryFn: getCatalog, staleTime: 5 * 60_000 });
+  const ready = isAuthenticated && !authLoading && !authConfig.isPending && authConfig.data?.aiSearchEnabled !== false;
+  const lastTurn = turns.at(-1);
+  const latestOutcome = lastTurn?.outcome;
+  const pending = latestOutcome?.kind === 'pending';
+  const hasProgress = latestOutcome?.kind === 'pending' && Boolean(latestOutcome.stage);
 
-  useEffect(() => () => {
-    sequence.current += 1;
-    controller.current?.abort();
-  }, []);
+  useEffect(() => () => activeRequest.current?.abort(), []);
 
-  const departments = catalog.data?.departments || [];
-  const localities = catalog.data?.localities.filter((item) => !departmentId || item.departmentId === departmentId) || [];
-
-  const runSearch = async (nextQuery = query, nextDepartment = departmentId, nextLocality = localityId) => {
-    if (!isAuthenticated) {
-      navigate(`/login?next=${encodeURIComponent('/buscar/avanzada')}`);
-      return;
+  useEffect(() => {
+    const container = thread.current;
+    const row = latestTurn.current;
+    if (container && row) {
+      const top = row.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+      container.scrollTo({ top: Math.max(0, top - 16), behavior: 'instant' });
     }
-    const cleanQuery = nextQuery.trim();
-    if (cleanQuery.length < 2) {
-      setError('Escribí al menos dos caracteres para buscar.');
-      return;
-    }
-    if (cleanQuery.length > 500) {
-      setError('La búsqueda puede tener hasta 500 caracteres.');
-      return;
-    }
+  }, [lastTurn?.id, latestOutcome?.kind, hasProgress]);
 
-    const requestSequence = ++sequence.current;
-    controller.current?.abort();
-    const nextController = new AbortController();
-    controller.current = nextController;
-    setQuery(nextQuery);
-    setBusy(true);
-    setError('');
-    setResponse(null);
+  const updateTurn = (id: number, outcome: Outcome) => {
+    setTurns((current) => current.map((turn) => turn.id === id ? { ...turn, outcome } : turn));
+  };
+
+  async function run(request: TurnRequest, retryId?: number) {
+    if (!ready || activeRequest.current || request.input.query.trim().length < 2) return;
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    const id = retryId ?? ++nextId.current;
+    const outcome: Outcome = { kind: 'pending' };
+    if (retryId === undefined) setTurns((current) => [...current, { id, ...request, outcome }]);
+    else updateTurn(id, outcome);
+
     try {
-      const result = await searchAdvanced({
-        query: cleanQuery,
-        departmentId: nextDepartment || undefined,
-        localityId: nextLocality || undefined,
-        limit: 10,
-      }, nextController.signal);
-      if (sequence.current === requestSequence) setResponse(result);
-    } catch (reason) {
-      if (sequence.current !== requestSequence || (axios.isAxiosError(reason) && reason.code === 'ERR_CANCELED')) return;
-      const data = axios.isAxiosError(reason) ? reason.response?.data : undefined;
-      const message = axios.isAxiosError(reason)
-        ? (typeof data?.error === 'string' ? data.error
-          : typeof data?.error?.message === 'string' ? data.error.message
-          : typeof data?.message === 'string' ? data.message : reason.message)
-        : reason instanceof Error ? reason.message : 'No se pudo completar la búsqueda.';
-      setError(message || 'No se pudo completar la búsqueda. Probá otra vez.');
+      const response = await searchAdvanced(request.input, controller.signal, (stage) => {
+        if (!controller.signal.aborted) updateTurn(id, { kind: 'pending', stage });
+      });
+      if (!controller.signal.aborted) updateTurn(id, { kind: 'result', response });
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      const serverError = error instanceof AdvancedSearchRequestError;
+      updateTurn(id, {
+        kind: 'error',
+        message: serverError ? error.message : 'La búsqueda se interrumpió. Probá de nuevo.',
+        status: serverError ? error.status : undefined,
+      });
     } finally {
-      if (sequence.current === requestSequence) setBusy(false);
+      if (activeRequest.current === controller) activeRequest.current = null;
     }
-  };
+  }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void runSearch();
-  };
+    const query = draft.trim();
+    if (!ready || activeRequest.current || query.length < 2) return;
+    setDraft('');
+    void run({ input: { query }, message: query });
+  }
 
-  const handleClarification = (option: SearchClarificationOption) => {
-    if (option.kind === 'locality' && option.localityId) {
-      setDepartmentId(option.departmentId || '');
-      setLocalityId(option.localityId);
-    } else if (option.kind === 'department' && option.departmentId) {
-      setDepartmentId(option.departmentId);
-      setLocalityId('');
-    } else if (option.kind === 'profession') {
-      const requested = response?.clarification?.requestedText;
-      const next = requested
-        ? query.replace(new RegExp(`\\b${requested.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'), option.name)
-        : `${option.name} ${query}`.trim();
-      setQuery(next);
-    }
-    setResponse(null);
-  };
+  function edit(query: string) {
+    setDraft(query.slice(0, 500));
+    composer.current?.focus();
+  }
 
-  const broadenSearch = () => {
-    const selectedDepartment = departments.find((item) => item.id === departmentId)?.name;
-    const selectedLocality = catalog.data?.localities.find((item) => item.id === localityId)?.name;
-    const queryWithoutPlace = removeLocationFromQuery(query, [selectedLocality, selectedDepartment]);
-    if (localityId) {
-      const nextQuery = queryWithoutPlace || query;
-      setLocalityId('');
-      void runSearch(nextQuery, departmentId, '');
-      return;
+  function clarify(turn: ChatTurn, response: AdvancedSearchResponse, option: SearchClarificationOption) {
+    const query = turn.input.query;
+    if (option.kind === 'profession') {
+      const requested = response.clarification?.requestedText;
+      const corrected = requested ? replacePhrase(query, requested, option.name) : query;
+      if (corrected === query || corrected.length > 500) edit(corrected === query ? `${option.name} ${query}` : corrected);
+      else void run({ input: { ...turn.input, query: corrected }, message: corrected });
+    } else {
+      const area = placeLabel(option.kind === 'locality' ? option.name : undefined, option.kind === 'department' ? option.name : option.department);
+      void run({
+        input: { query, departmentId: option.departmentId || undefined, localityId: option.localityId || undefined },
+        message: `Buscar en ${area}`,
+      });
     }
-    if (departmentId) {
-      setDepartmentId('');
-      setLocalityId('');
-      void runSearch(queryWithoutPlace || query, '', '');
-      return;
-    }
-    const resultDepartment = response?.applied_filters?.department;
-    const resultLocality = response?.applied_filters?.locality;
-    const nextQuery = removeLocationFromQuery(query, [resultLocality, resultDepartment]);
-    if (nextQuery && nextQuery !== query) void runSearch(nextQuery, '', '');
-  };
+  }
 
-  const hasLocationScope = Boolean(departmentId || localityId || response?.applied_filters?.department || response?.applied_filters?.locality);
-  const canBroaden = Boolean(response && response.results.length === 0 && hasLocationScope);
+  function reset() {
+    activeRequest.current?.abort();
+    activeRequest.current = null;
+    setTurns([]);
+    setDraft('');
+    composer.current?.focus();
+  }
 
   return (
-    <div className="flex min-h-screen flex-col bg-base-100">
-      <Navbar />
-      <main className="flex-1">
-        <section className="border-b border-base-300/60 bg-base-200/40 py-10 sm:py-14">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-            <div className="rounded-[2.25rem] border border-base-300/70 bg-base-100/95 p-6 shadow-sm sm:p-9">
-              <div className="flex items-start gap-4">
-                <span className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <Sparkles className="h-6 w-6" aria-hidden="true" />
-                </span>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Jobkler · búsqueda local</p>
-                  <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-base-content sm:text-4xl">Búsqueda Avanzada</h1>
-                  <p className="mt-3 max-w-3xl text-base leading-relaxed text-base-content/70">
-                    Contá qué necesitás con tus palabras. Buscamos en los perfiles publicados y mostramos el fragmento que respalda cada coincidencia.
-                  </p>
-                </div>
-              </div>
-
-              {!authLoading && !isAuthenticated ? (
-                <div className="mt-7 rounded-2xl border border-warning/30 bg-warning/10 p-5" role="status">
-                  <h2 className="font-bold text-base-content">Iniciá sesión para buscar</h2>
-                  <p className="mt-1 text-sm text-base-content/70">La búsqueda avanzada está disponible para cuentas autenticadas. El buscador común sigue abierto.</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Link to={`/login?next=${encodeURIComponent('/buscar/avanzada')}`} className="btn btn-primary btn-sm rounded-full">Ingresar</Link>
-                    <Link to="/buscar" className="btn btn-outline btn-sm rounded-full">Usar búsqueda común</Link>
-                  </div>
-                </div>
-              ) : authLoading ? (
-                <p className="mt-7 text-sm text-base-content/60" role="status">Comprobando la sesión…</p>
-              ) : authConfig.isLoading ? (
-                <p className="mt-7 text-sm text-base-content/60" role="status">Comprobando la disponibilidad…</p>
-              ) : authConfig.data?.aiSearchEnabled === false ? (
-                <div className="mt-7 rounded-2xl border border-warning/30 bg-warning/10 p-5" role="status">
-                  <p className="font-semibold text-base-content">La búsqueda avanzada está apagada en esta configuración.</p>
-                  <Link to="/buscar" className="btn btn-outline btn-sm mt-4 rounded-full">Ir a búsqueda común</Link>
-                </div>
-              ) : (
-                <>
-                  <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
-                    <div>
-                      <label htmlFor="advanced-query" className="mb-2 block text-sm font-semibold text-base-content">¿Qué servicio necesitás?</label>
-                      <textarea
-                        id="advanced-query"
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        maxLength={500}
-                        rows={3}
-                        placeholder="Ej.: ¿Hay alguien que arregle termofones en Minas?"
-                        className="w-full resize-y rounded-2xl border border-base-300 bg-base-100 px-4 py-3 text-base text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        aria-describedby="advanced-query-help"
-                      />
-                      <div className="mt-1 flex justify-between gap-4 text-xs text-base-content/55">
-                        <span id="advanced-query-help">Cada envío es independiente; no se guarda una conversación.</span>
-                        <span>{query.length}/500</span>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <label htmlFor="advanced-department" className="mb-2 block text-sm font-semibold text-base-content">Departamento (opcional)</label>
-                        <select
-                          id="advanced-department"
-                          value={departmentId}
-                          onChange={(event) => { setDepartmentId(event.target.value); setLocalityId(''); }}
-                          className="h-12 w-full rounded-xl border border-base-300 bg-base-100 px-3 text-base-content focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        >
-                          <option value="">Todo Uruguay</option>
-                          {departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label htmlFor="advanced-locality" className="mb-2 block text-sm font-semibold text-base-content">Localidad (opcional)</label>
-                        <select
-                          id="advanced-locality"
-                          value={localityId}
-                          disabled={!departmentId}
-                          onChange={(event) => setLocalityId(event.target.value)}
-                          className="h-12 w-full rounded-xl border border-base-300 bg-base-100 px-3 text-base-content focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-55"
-                        >
-                          <option value="">Todas las localidades</option>
-                          {localities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button type="submit" disabled={busy || !query.trim()} className="btn btn-primary rounded-full px-7">
-                  {busy ? <LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Search className="h-4 w-4" aria-hidden="true" />}
-                        {busy ? 'Buscando…' : 'Buscar'}
-                      </button>
-                      <span className="text-xs text-base-content/50">Hasta 10 resultados · texto y significado · sin ubicaciones por defecto</span>
-                    </div>
-                  </form>
-
-                  {!response && !busy && !error ? (
-                    <div className="mt-6">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-base-content/50">Podés probar</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {EXAMPLES.map((example) => (
-                          <button key={example} type="button" onClick={() => setQuery(example)} className="rounded-full border border-base-300 bg-base-200/60 px-3 py-2 text-left text-sm text-base-content/75 transition hover:border-primary/40 hover:text-primary">
-                            {example}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </div>
+    <main className="search-chat flex flex-1 flex-col items-center px-2.5 py-3 sm:px-6 sm:py-6">
+      <section className="search-chat__frame flex w-full max-w-5xl flex-col overflow-hidden rounded-[1.35rem] border border-base-300 bg-base-100 shadow-soft sm:rounded-3xl" aria-label="Asistente de búsqueda avanzada">
+        <header className="flex shrink-0 items-center gap-3 border-b border-base-300/80 px-4 py-3 sm:px-6">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-secondary">
+            <Sparkles aria-hidden="true" size={20} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base font-extrabold tracking-tight sm:text-lg">Asistente de búsqueda</h1>
+            <p className="text-xs text-base-content/65">Encontrá servicios en Uruguay</p>
           </div>
-        </section>
+          {ready && (turns.length > 0 || draft) && (
+            <button type="button" className="btn btn-ghost btn-sm gap-1.5 rounded-full px-2.5" aria-label="Nuevo chat" onClick={reset}>
+              <Plus aria-hidden="true" size={17} /><span className="hidden sm:inline">Nuevo chat</span>
+            </button>
+          )}
+        </header>
 
-        {isAuthenticated ? (
-          <section className="py-9 sm:py-12" aria-live="polite">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              {busy ? (
-                <div className="flex items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-5 text-base-content/70" role="status">
-                  <LoaderCircle className="h-5 w-5 animate-spin motion-reduce:animate-none text-primary" aria-hidden="true" />
-                  <span>Buscando perfiles publicados…</span>
-                </div>
-              ) : error ? (
-                <div className="rounded-2xl border border-error/25 bg-error/10 p-5" role="alert">
-                  <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-error" aria-hidden="true" /><div><h2 className="font-bold text-base-content">No se pudo completar la búsqueda</h2><p className="mt-1 text-sm text-base-content/75">{error}</p></div></div>
-                  <button onClick={() => void runSearch()} className="btn btn-outline btn-sm mt-4 rounded-full" type="button">Reintentar</button>
-                </div>
-              ) : response ? (
-                <div>
-                  {response.status === 'degraded' ? (
-                    <div className="mb-5 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm text-base-content" role="status">
-                      <p className="font-semibold">Búsqueda reducida</p>
-                      {(response.degradation || []).map((item) => <p key={item} className="mt-1 text-base-content/75">{item}</p>)}
+        <div ref={thread} className="search-chat__thread min-h-0 flex-1 overflow-y-auto overscroll-contain" role="region" aria-label="Conversación" tabIndex={0}>
+          {!ready ? (
+            <div className="grid min-h-full place-items-center px-5 py-8 text-center">
+              <div>
+                {authLoading || (isAuthenticated && authConfig.isPending) ? (
+                  <p role="status" className="text-sm text-base-content/75">Preparando el asistente…</p>
+                ) : (
+                  <>
+                    <h2 className="text-xl font-extrabold">{isAuthenticated ? 'Búsqueda avanzada desactivada' : 'Ingresá para usar el asistente'}</h2>
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                      {!isAuthenticated && <Link to="/login?next=%2Fbuscar%2Favanzada" className="btn btn-primary btn-sm rounded-full">Ingresar</Link>}
+                      <Link to="/buscar" className="btn btn-outline btn-sm rounded-full">Búsqueda común</Link>
                     </div>
-                  ) : null}
-
-                  {response.status === 'ambiguous' ? (
-                    <div className="rounded-2xl border border-warning/30 bg-warning/10 p-5" role="status">
-                      <h2 className="font-bold text-base-content">Necesitamos una aclaración</h2>
-                      <p className="mt-1 text-sm text-base-content/75">{response.message}</p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {response.clarification?.options?.map((option) => (
-                          <button key={`${option.kind}-${option.id || option.name}`} type="button" onClick={() => handleClarification(option)} className="btn btn-outline btn-sm rounded-full">
-                            Usar {option.name}{option.department ? ` · ${option.department}` : ''}
-                          </button>
-                        ))}
-                      </div>
-                      {response.clarification?.options?.length ? <p className="mt-3 text-xs text-base-content/60">La opción solo cambia los filtros; volvé a presionar Buscar para enviar una búsqueda nueva.</p> : null}
-                    </div>
-                  ) : response.status === 'unsupported' ? (
-                    <div className="rounded-2xl border border-base-300 bg-base-100 p-5" role="status"><h2 className="font-bold text-base-content">Escribí un servicio para buscar</h2><p className="mt-1 text-sm text-base-content/70">{response.message}</p></div>
-                  ) : response.results.length ? (
-                    <>
-                      <div className="mb-6">
-                        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Resultados</p>
-                        <h2 className="mt-2 text-2xl font-extrabold text-base-content">Sobre tu búsqueda, esto fue lo que pude encontrar</h2>
-                        <p className="mt-2 text-sm text-base-content/65">{response.results.length} perfiles con evidencia en el contenido publicado.</p>
-                      </div>
-                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                        {response.results.map((item) => (
-                          <div key={item.profile.id} className="flex flex-col gap-3">
-                            <ProfileCard profile={item.profile} compact />
-                            <article className="rounded-2xl border border-base-300/70 bg-base-200/50 p-4">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className={`badge rounded-full border-0 ${item.evidence.matchType === 'direct' ? 'bg-success/15 text-success' : 'bg-info/15 text-info'}`}>
-                                  {item.evidence.matchType === 'direct' ? 'Coincidencia directa' : 'Experiencia relacionada'}
-                                </span>
-                                <span className="text-xs text-base-content/55">{sourceFieldLabel(item.evidence.sourceField)}</span>
-                              </div>
-                              <blockquote className="mt-3 border-l-2 border-primary/40 pl-3 text-sm leading-relaxed text-base-content/80">“{item.evidence.text}”</blockquote>
-                              <p className="mt-3 text-xs font-semibold text-base-content/60">{item.locationLabel}</p>
-                              {item.evidence.matchType === 'related' ? <p className="mt-2 text-xs text-base-content/55">Este fragmento está relacionado con la consulta; no confirma por sí solo el servicio exacto.</p> : null}
-                              {item.profile.isFictionalDemo ? <p className="mt-2 text-xs font-semibold text-warning">Perfil ficticio de evaluación local.</p> : null}
-                              <Link to={`/perfil/${item.profile.slug}`} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">Ver perfil completo <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>
-                            </article>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="rounded-2xl border border-base-300/70 bg-base-100 p-6" role="status">
-                      <h2 className="text-xl font-bold text-base-content">No encontramos coincidencias suficientes</h2>
-                      <p className="mt-2 text-sm text-base-content/70">{response.message}</p>
-                      {canBroaden ? <button type="button" onClick={broadenSearch} className="btn btn-outline btn-sm mt-4 rounded-full">{localityId ? 'Ampliar al departamento' : 'Buscar sin filtro geográfico'}</button> : null}
-                    </div>
-                  )}
-                </div>
-              ) : null}
+                  </>
+                )}
+              </div>
             </div>
-          </section>
-        ) : null}
-      </main>
-      <Footer />
-    </div>
+          ) : turns.length === 0 ? (
+            <div className="search-chat__welcome flex min-h-full flex-col items-center justify-center px-4 py-6 text-center sm:px-8 sm:py-12">
+              <span className="search-chat__mark grid size-16 place-items-center rounded-[1.35rem] border border-primary/25 bg-primary/12 text-secondary">
+                <Sparkles aria-hidden="true" size={32} strokeWidth={1.7} />
+              </span>
+              <h2 className="mt-5 text-3xl font-extrabold tracking-tight sm:text-4xl">¿Qué servicio necesitás?</h2>
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-base-content/75 sm:text-base">
+                Contame qué buscás y dónde. Voy a usar la ubicación de tu mensaje para filtrar los perfiles.
+              </p>
+              <div className="mt-5 flex max-w-2xl flex-wrap justify-center gap-2 sm:mt-7">
+                {examples.map(({ text, Icon }) => (
+                  <button key={text} type="button" onClick={() => edit(text)} className="inline-flex items-center gap-2 rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-left text-xs font-bold transition-colors hover:border-primary/55 hover:bg-primary/8 sm:text-sm">
+                    <Icon aria-hidden="true" size={15} className="shrink-0 text-secondary" /> {text}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mx-auto max-w-4xl space-y-7 px-3 py-5 sm:px-8 sm:py-7">
+              {turns.map((turn) => {
+                const isLast = turn.id === lastTurn?.id;
+                const outcome = turn.outcome;
+                const response = outcome.kind === 'result' ? outcome.response : undefined;
+                const filters = response?.applied_filters;
+                const canBroaden = isLast && Boolean(filters?.locality || filters?.department) && response?.status !== 'ambiguous';
+                return (
+                  <div key={turn.id} ref={isLast ? latestTurn : undefined} className="search-chat__turn space-y-4">
+                    <div className="flex justify-end">
+                      <p className="max-w-[87%] whitespace-pre-wrap break-words rounded-2xl rounded-tr-md border border-primary/20 bg-primary/13 px-4 py-2.5 text-sm font-semibold sm:max-w-[76%]">
+                        <span className="sr-only">Tu mensaje: </span>{turn.message}
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-2.5 sm:gap-3">
+                      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border border-primary/20 bg-primary/10 text-secondary sm:size-9">
+                        <Sparkles aria-hidden="true" size={17} />
+                      </span>
+                      {outcome.kind === 'pending' && (outcome.stage
+                        ? <SearchProgress stage={outcome.stage} />
+                        : <p role="status" className="rounded-2xl rounded-tl-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content/75">Enviando tu mensaje…</p>)}
+                      {outcome.kind === 'error' && (
+                        <div className="rounded-2xl rounded-tl-md border border-base-300 bg-base-100 px-4 py-3 text-sm" role="alert">
+                          <p>{outcome.message}</p>
+                          {outcome.status === 401 ? (
+                            <Link to="/login?next=%2Fbuscar%2Favanzada" className="btn btn-ghost btn-sm mt-1 px-0 text-secondary">Ingresar</Link>
+                          ) : isLast && (
+                            <button type="button" className="btn btn-ghost btn-sm mt-1 gap-1.5 px-0 text-secondary" onClick={() => void run(turn, turn.id)}>
+                              <RotateCcw aria-hidden="true" size={14} /> Reintentar
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {response && (
+                        <SearchReply
+                          response={response}
+                          disabled={pending}
+                          onClarify={(option) => clarify(turn, response, option)}
+                          onEdit={() => edit(turn.input.query)}
+                          onBroaden={canBroaden ? () => void run({ input: { query: turn.input.query, locationScope: 'national' }, message: 'Buscar en todo Uruguay' }) : undefined}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {ready && (
+          <form onSubmit={submit} className="shrink-0 border-t border-base-300/80 bg-base-100 px-3 py-3 sm:px-6 sm:py-4">
+            <div className="mx-auto flex max-w-4xl items-end gap-2 rounded-2xl border border-base-300 bg-base-200/45 p-1.5 transition-colors focus-within:border-primary/65">
+              <label htmlFor="chat-query" className="sr-only">Tu mensaje</label>
+              <textarea
+                ref={composer}
+                id="chat-query"
+                rows={1}
+                value={draft}
+                maxLength={500}
+                placeholder="Escribí qué servicio necesitás…"
+                className="search-chat__input min-w-0 flex-1 resize-none rounded-xl bg-transparent px-3 py-2.5 text-base leading-6 placeholder:text-base-content/55 focus-visible:outline-none"
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }}
+                aria-describedby="chat-input-help"
+              />
+              <button type="submit" className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-primary-content transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Enviar mensaje" disabled={pending || draft.trim().length < 2}>
+                <ArrowUp aria-hidden="true" size={22} strokeWidth={2.5} />
+              </button>
+            </div>
+            <p id="chat-input-help" className="mx-auto mt-1.5 max-w-4xl text-center text-xs text-base-content/60">
+              {draft.length === 500 ? 'Llegaste al límite de 500 caracteres.' : <><span className="hidden sm:inline">Enter para enviar · Mayús + Enter para una nueva línea</span><span className="sm:hidden">Buscá por oficio, servicio o localidad</span></>}
+            </p>
+          </form>
+        )}
+      </section>
+    </main>
   );
 }

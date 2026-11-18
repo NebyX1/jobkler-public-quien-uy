@@ -83,26 +83,30 @@ sequenceDiagram
     participant LLM as Qwen local
     participant Texto as SQLite FTS5
     participant Vec as MiniLM + vectores
-    Persona->>Web: Escribe y envía una consulta
-    Web->>API: POST /api/search/advanced con sesión y CSRF
+    Persona->>Web: Envía un mensaje en el chat
+    Web->>API: POST /api/search/advanced con sesión, CSRF y Accept NDJSON
     API->>API: Valida entrada, sesión y límite
+    API-->>Web: Etapa de interpretación
     API->>LLM: Solicita interpretación JSON
     alt Qwen responde correctamente
         LLM-->>API: Servicio, acción, objeto y lugar
     else Qwen no está disponible o la respuesta es inválida
         API->>API: Extrae términos de forma determinista
     end
-    API->>API: Resuelve filtros geográficos y oficio solicitado
-    par Rama textual
+    API-->>Web: Etapa de ubicación
+    API->>API: Resuelve la ubicación con el catálogo
+    alt La ubicación está resuelta
+        API-->>Web: Etapa de búsqueda de perfiles
         API->>Texto: Busca documentos elegibles con BM25
         Texto-->>API: Ranking textual
-    and Rama semántica
         API->>Vec: Vectoriza consulta y compara fragmentos vigentes
         Vec-->>API: Ranking semántico
+        API->>API: Combina rankings y selecciona evidencia
+        API-->>Web: Resultado con zona aplicada y perfiles
+    else Hace falta aclarar la ubicación
+        API-->>Web: Resultado con opciones cuando existen
     end
-    API->>API: Combina rankings, valida perfil y selecciona evidencia
-    API-->>Web: Resultados, estado y fragmentos literales
-    Web-->>Persona: Tarjetas y aviso si hay modo reducido
+    Web-->>Persona: Respuesta dentro de la conversación
 ```
 
 Qwen tiene un único turno de inferencia. Una consulta adicional espera hasta 10 segundos por defecto; si no consigue turno, recibe una respuesta recuperable. Los límites y el comportamiento detallado están en [Busqueda-Avanzada.md](Busqueda-Avanzada.md).
